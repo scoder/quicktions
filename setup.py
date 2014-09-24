@@ -26,27 +26,18 @@ if cythonize is None:
         ext_module.sources[:] = [m.replace('.pyx', '.c') for m in ext_module.sources]
 
 
-
 with open('src/quicktions.pyx') as f:
     version = re.search("__version__\s*=\s*'([^']+)'", f.read(2048)).group(1)
+
+with open('README.rst') as f:
+    long_description = ''.join(filter(None, f.readlines()[2:]))
 
 setup(
     name="quicktions",
     version=version,
     description="Fast fractions data type for rational numbers. "
                 "Cythonized version of 'fractions.Fraction'.",
-    long_description="""\
-    Python's Fraction data type is an excellent way to do exact money
-    calculations and largely beats Decimal in terms of simplicity,
-    accuracy and safety.  Clearly not in terms of speed, though.
-
-    This is an adaptation of the original module (as included in
-    CPython 3.4) that is compiled and optimised with Cython into a
-    fast, native extension module.
-
-    Compared to the standard library 'fractions' module in Py2.7 and
-    Py3.4, 'quicktions' is about 10x faster.
-    """,
+    long_description=long_description,
     author="Stefan Behnel",
     author_email="stefan_ml@behnel.de",
 

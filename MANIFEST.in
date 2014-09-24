@@ -1,27 +1,4 @@
-include MANIFEST.in LICENSE
+include MANIFEST.in LICENSE README.rst
 include setup.py
-recursive-include src *.pyx *.c *.html
+recursive-include src *.py *.pyx *.c *.html
 recursive-include benchmark *.py telco-bench.b
-include Doc/*
-
-include Demos/*.pyx
-include Demos/*.py
-include Demos/callback/*
-include Demos/benchmarks/*
-include Demos/embed/*
-include Demos/freeze/*
-include Demos/libraries/*
-include Demos/Makefile*
-recursive-include Cython/Debugger/Tests *.pyx *.pxd *.c *.h
-recursive-include Cython/Utility *.pyx *.pxd *.c *.h *.cpp
-recursive-include Tools *
-recursive-include tests *.pyx *.pxd *.pxi *.py *.h *.BROKEN bugs.txt
-recursive-include tests *_lib.cpp *.srctree
-recursive-include docs *
-include runtests.py
-
-include Cython/Debugger/Tests/cfuncs.c
-include Cython/Debugger/Tests/codefile
-
-recursive-include pyximport *.py
-include pyximport/PKG-INFO pyximport/README
