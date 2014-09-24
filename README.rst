@@ -1,8 +1,6 @@
 quicktions
 ==========
 
-:author: Stefan Behnel
-
 Python's Fraction data type is an excellent way to do exact money
 calculations and largely beats Decimal in terms of simplicity,
 accuracy and safety.  Clearly not in terms of speed, though.
