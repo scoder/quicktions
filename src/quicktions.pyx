@@ -130,9 +130,11 @@ cdef class Fraction:
     """
     cdef _numerator
     cdef _denominator
+    cdef Py_hash_t _hash
 
     def __cinit__(self, numerator=0, denominator=None, _normalize=True):
         cdef Fraction value
+        self._hash = -1
         if denominator is None:
             if type(numerator) is int or type(numerator) is long:
                 self._numerator = numerator
@@ -508,8 +510,8 @@ cdef class Fraction:
 
     def __hash__(self):
         """hash(self)"""
-
-        # XXX since this method is expensive, consider caching the result
+        if self._hash != -1:
+            return self._hash
 
         # In order to make sure that the hash of a Fraction agrees
         # with the hash of a numerically equal integer, float or
@@ -517,16 +519,21 @@ cdef class Fraction:
         # outlined in the documentation.  (See library docs, 'Built-in
         # Types').
 
+        cdef Py_hash_t result
         # dinv is the inverse of self._denominator modulo the prime
         # _PyHASH_MODULUS, or 0 if self._denominator is divisible by
         # _PyHASH_MODULUS.
         dinv = pow(self._denominator, _PyHASH_MODULUS - 2, _PyHASH_MODULUS)
         if not dinv:
-            hash_ = _PyHASH_INF
+            result = _PyHASH_INF
         else:
-            hash_ = abs(self._numerator) * dinv % _PyHASH_MODULUS
-        result = hash_ if self >= 0 else -hash_
-        return -2 if result == -1 else result
+            result = abs(self._numerator) * dinv % _PyHASH_MODULUS
+        if self._numerator < 0:
+            result = -result
+            if result == -1:
+                result = -2
+        self._hash = result
+        return result
 
     def __richcmp__(a, b, int op):
         if op == Py_EQ:
