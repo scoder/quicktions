@@ -223,8 +223,13 @@ cdef class Fraction:
             raise ZeroDivisionError('Fraction(%s, 0)' % numerator)
         if _normalize:
             g = _gcd(numerator, denominator)
-            numerator //= g
-            denominator //= g
+            if g is not 1:
+                if g is -1:
+                    numerator = -numerator
+                    denominator = -denominator
+                else:
+                    numerator //= g
+                    denominator //= g
         self._numerator = numerator
         self._denominator = denominator
 
