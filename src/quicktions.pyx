@@ -568,7 +568,7 @@ cdef class Fraction:
     cdef _eq(a, b):
         if type(b) is int or type(b) is long:
             return a._numerator == b and a._denominator == 1
-        if type(b) is  Fraction:
+        if type(b) is Fraction:
             return (a._numerator == (<Fraction>b)._numerator and
                     a._denominator == (<Fraction>b)._denominator)
         if isinstance(b, Rational):
