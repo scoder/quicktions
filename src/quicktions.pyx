@@ -188,8 +188,8 @@ cdef class Fraction:
 
             elif isinstance(numerator, Decimal):
                 value = Fraction.from_decimal(numerator)
-                self._numerator = value._numerator
-                self._denominator = value._denominator
+                self._numerator = (<Fraction>value)._numerator
+                self._denominator = (<Fraction>value)._denominator
                 return
 
             else:
@@ -429,6 +429,8 @@ cdef class Fraction:
 
     def __pos__(a):
         """+a: Coerces a subclass instance to Fraction"""
+        if type(a) is Fraction:
+            return a
         return Fraction(a._numerator, a._denominator, _normalize=False)
 
     def __neg__(a):
@@ -494,15 +496,15 @@ cdef class Fraction:
         """complex(self) == complex(float(self), 0)"""
         return complex(float(self))
 
-    @property
-    def real(self):
+    property real:
         """Real numbers are their real component."""
-        return +self
+        def __get__(self):
+            return +self
 
-    @property
-    def imag(self):
+    property imag:
         """Real numbers have no imaginary component."""
-        return 0
+        def __get__(self):
+            return 0
 
     def conjugate(self):
         """Conjugate is a no-op for Reals."""
