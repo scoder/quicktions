@@ -11,6 +11,7 @@ __pycache__
 /dist
 src/*.c
 src/*.html
+MANIFEST
 
 .tox
 .coverage
