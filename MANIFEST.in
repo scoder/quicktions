@@ -1,4 +1,4 @@
-include MANIFEST.in LICENSE README.rst
+include MANIFEST.in LICENSE *.rst
 include setup.py
 recursive-include src *.py *.pyx *.c *.html
 recursive-include benchmark *.py telco-bench.b
