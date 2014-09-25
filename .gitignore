@@ -16,6 +16,7 @@ MANIFEST
 .tox
 .coverage
 .idea
+*.patch
 *.orig
 *.rej
 *.dep
