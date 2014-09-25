@@ -597,7 +597,9 @@ cdef class Fraction:
 
         """
         # convert other to a Rational instance where reasonable.
-        if isinstance(other, (int, long, Fraction, Rational)):
+        if isinstance(other, (int, long)):
+            return op(self._numerator, self._denominator * other)
+        if isinstance(other, (Fraction, Rational)):
             return op(self._numerator * other.denominator,
                       self._denominator * other.numerator)
         if isinstance(other, float):
