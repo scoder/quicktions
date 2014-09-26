@@ -502,15 +502,11 @@ cdef class Fraction:
         """complex(self) == complex(float(self), 0)"""
         return complex(float(self))
 
-    property real:
-        """Real numbers are their real component."""
-        def __get__(self):
-            return +self
+    # == +self
+    real = property(__pos__, doc="Real numbers are their real component.")
 
-    property imag:
-        """Real numbers have no imaginary component."""
-        def __get__(self):
-            return 0
+    # == 0
+    imag = property(int, doc="Real numbers have no imaginary component.")
 
     def conjugate(self):
         """Conjugate is a no-op for Reals."""
