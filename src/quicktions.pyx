@@ -223,13 +223,14 @@ cdef class Fraction:
             raise ZeroDivisionError('Fraction(%s, 0)' % numerator)
         if _normalize:
             g = _gcd(numerator, denominator)
-            if g is not 1:
-                if g is -1:
-                    numerator = -numerator
-                    denominator = -denominator
-                else:
-                    numerator //= g
-                    denominator //= g
+            # NOTE: 'is' tests on integers are generally a bad idea, but
+            # they are fast and if they fail here, it'll still be correct
+            if g is -1:
+                numerator = -numerator
+                denominator = -denominator
+            elif g is not 1:
+                numerator //= g
+                denominator //= g
         self._numerator = numerator
         self._denominator = denominator
 
