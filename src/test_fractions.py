@@ -350,11 +350,12 @@ class FractionTest(unittest.TestCase):
         self.assertTypedEquals(0.1+0j, complex(F(1,10)))
 
     def testRound(self):
-        self.assertTypedEquals(F(-200), round(F(-150), -2))
-        self.assertTypedEquals(F(-200), round(F(-250), -2))
-        self.assertTypedEquals(F(30), round(F(26), -1))
-        self.assertTypedEquals(F(-2, 10), round(F(-15, 100), 1))
-        self.assertTypedEquals(F(-2, 10), round(F(-25, 100), 1))
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(F(-200), round(F(-150), -2))
+            self.assertTypedEquals(F(-200), round(F(-250), -2))
+            self.assertTypedEquals(F(30), round(F(26), -1))
+            self.assertTypedEquals(F(-2, 10), round(F(-15, 100), 1))
+            self.assertTypedEquals(F(-2, 10), round(F(-25, 100), 1))
 
     def testArithmetic(self):
         self.assertEqual(F(1, 2), F(1, 10) + F(2, 5))
