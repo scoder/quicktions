@@ -622,8 +622,11 @@ cdef class Fraction:
                 return op(0.0, other)
             else:
                 return op(self, self.from_float(other))
-        else:
-            return NotImplemented
+        # comparisons with complex should raise a TypeError, for consistency
+        # with int<->complex, float<->complex, and complex<->complex comparisons.
+        if PY_MAJOR_VERSION < 3 and isinstance(other, complex):
+            raise TypeError("no ordering relation is defined for complex numbers")
+        return NotImplemented
 
     def __bool__(self):
         """a != 0"""
