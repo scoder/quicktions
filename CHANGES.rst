@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+Latest changes
+--------------
+
+* minor behavioural fixes in corner cases under Python 2.x
+  (now passes all test in Py2.7 as well)
+
+
 0.2 (2014-10-03)
 ----------------
 
