@@ -544,40 +544,40 @@ cdef class Fraction:
         return result
 
     def __richcmp__(a, b, int op):
-        if op == Py_EQ:
-            if isinstance(a, Fraction):
+        if isinstance(a, Fraction):
+            if op == Py_EQ:
                 return (<Fraction>a)._eq(b)
-            else:
-                return (<Fraction>b)._eq(a)
-        elif op == Py_NE:
-            if isinstance(a, Fraction):
+            elif op == Py_NE:
                 result = (<Fraction>a)._eq(b)
+                return NotImplemented if result is NotImplemented else not result
+            elif op == Py_LT:
+                pyop = operator.lt
+            elif op == Py_GT:
+                pyop = operator.gt
+            elif op == Py_LE:
+                pyop = operator.le
+            elif op == Py_GE:
+                pyop = operator.ge
             else:
-                result = (<Fraction>b)._eq(a)
-            return NotImplemented if result is NotImplemented else not result
-        elif op == Py_LT:
-            if isinstance(a, Fraction):
-                return (<Fraction>a)._richcmp(b, operator.lt)
+                return NotImplemented
+        else:
+            a, b = b, a
+            if op == Py_EQ:
+                return (<Fraction>a)._eq(b)
+            elif op == Py_NE:
+                result = (<Fraction>a)._eq(b)
+                return NotImplemented if result is NotImplemented else not result
+            elif op == Py_LT:
+                pyop = operator.ge
+            elif op == Py_GT:
+                pyop = operator.le
+            elif op == Py_LE:
+                pyop = operator.gt
+            elif op == Py_GE:
+                pyop = operator.lt
             else:
-                return (<Fraction>b)._richcmp(a, operator.ge)
-        elif op == Py_GT:
-            if isinstance(a, Fraction):
-                return (<Fraction>a)._richcmp(b, operator.gt)
-            else:
-                return (<Fraction>b)._richcmp(a, operator.le)
-        elif op == Py_LE:
-            if isinstance(a, Fraction):
-                return (<Fraction>a)._richcmp(b, operator.le)
-            else:
-                return (<Fraction>b)._richcmp(a, operator.gt)
-        elif op == Py_GE:
-            if isinstance(a, Fraction):
-                return (<Fraction>a)._richcmp(b, operator.ge)
-            else:
-                return (<Fraction>b)._richcmp(a, operator.lt)
-        # Since a doesn't know how to compare with b, let's give b
-        # a chance to compare itself with a.
-        return NotImplemented
+                return NotImplemented
+        return (<Fraction>a)._richcmp(b, pyop)
 
     @cython.final
     cdef _eq(a, b):
