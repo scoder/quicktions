@@ -406,10 +406,16 @@ class FractionTest(unittest.TestCase):
         self.assertTypedEquals(10.0 + 0j, (1.0 + 0j) / F(1, 10))
 
         self.assertTypedEquals(0, F(1, 10) // 1)
-        self.assertTypedEquals(0, F(1, 10) // 1.0)
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(0, F(1, 10) // 1.0)
+        else:
+            self.assertTypedEquals(0.0, F(1, 10) // 1.0)
         self.assertTypedEquals(10, 1 // F(1, 10))
         self.assertTypedEquals(10**23, 10**22 // F(1, 10))
-        self.assertTypedEquals(10, 1.0 // F(1, 10))
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(10, 1.0 // F(1, 10))
+        else:
+            self.assertTypedEquals(10.0, 1.0 // F(1, 10))
 
         self.assertTypedEquals(F(1, 10), F(1, 10) % 1)
         self.assertTypedEquals(0.1, F(1, 10) % 1.0)
@@ -424,9 +430,13 @@ class FractionTest(unittest.TestCase):
         self.assertTypedEquals(0.1, F(1, 10) ** 1.0)
         self.assertTypedEquals(0.1 + 0j, F(1, 10) ** (1.0 + 0j))
         self.assertTypedEquals(4 , 2 ** F(2, 1))
-        z = pow(-1, F(1, 2))
-        self.assertAlmostEqual(0, z.real)
-        self.assertEqual(1, z.imag)
+        try:
+            z = pow(-1, F(1, 2))
+        except ValueError:
+            self.assertEqual(2, sys.version_info[0])
+        else:
+            self.assertAlmostEqual(0, z.real)
+            self.assertEqual(1, z.imag)
         self.assertTypedEquals(F(1, 4) , 2 ** F(-2, 1))
         self.assertTypedEquals(2.0 , 4 ** F(1, 2))
         self.assertTypedEquals(0.25, 2.0 ** F(-2, 1))
