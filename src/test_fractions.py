@@ -366,9 +366,13 @@ class FractionTest(unittest.TestCase):
         self.assertEqual(F(27, 8), F(2, 3) ** F(-3))
         self.assertTypedEquals(2.0, F(4) ** F(1, 2))
         self.assertEqual(F(1, 1), +F(1, 1))
-        z = pow(F(-1), F(1, 2))
-        self.assertAlmostEqual(z.real, 0)
-        self.assertEqual(z.imag, 1)
+        try:
+            z = pow(F(-1), F(1, 2))
+        except ValueError:
+            self.assertEqual(2, sys.version_info[0])
+        else:
+            self.assertAlmostEqual(z.real, 0)
+            self.assertEqual(z.imag, 1)
 
     def testMixedArithmetic(self):
         self.assertTypedEquals(F(11, 10), F(1, 10) + 1)

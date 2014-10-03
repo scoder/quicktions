@@ -658,7 +658,10 @@ cdef _pow(an, ad, bn, bd):
     else:
         # A fractional power will generally produce an
         # irrational number.
-        return (an / ad) ** (bn / bd)
+        if PY_MAJOR_VERSION >= 3:
+            return (an / ad) ** (bn / bd)
+        else:
+            return float(an / ad) ** (bn / bd)
 
 
 """
