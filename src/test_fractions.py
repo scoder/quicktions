@@ -326,14 +326,16 @@ class FractionTest(unittest.TestCase):
     def testConversions(self):
         self.assertTypedEquals(-1, math.trunc(F(-11, 10)))
         self.assertTypedEquals(1, math.trunc(F(11, 10)))
-        self.assertTypedEquals(-2, math.floor(F(-11, 10)))
-        self.assertTypedEquals(-1, math.ceil(F(-11, 10)))
-        self.assertTypedEquals(-1, math.ceil(F(-10, 10)))
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(-2, math.floor(F(-11, 10)))
+            self.assertTypedEquals(-1, math.ceil(F(-11, 10)))
+            self.assertTypedEquals(-1, math.ceil(F(-10, 10)))
         self.assertTypedEquals(-1, int(F(-11, 10)))
-        self.assertTypedEquals(0, round(F(-1, 10)))
-        self.assertTypedEquals(0, round(F(-5, 10)))
-        self.assertTypedEquals(-2, round(F(-15, 10)))
-        self.assertTypedEquals(-1, round(F(-7, 10)))
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(0, round(F(-1, 10)))
+            self.assertTypedEquals(0, round(F(-5, 10)))
+            self.assertTypedEquals(-2, round(F(-15, 10)))
+            self.assertTypedEquals(-1, round(F(-7, 10)))
 
         self.assertEqual(False, bool(F(0, 1)))
         self.assertEqual(True, bool(F(3, 2)))
