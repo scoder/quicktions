@@ -12,4 +12,6 @@ fast, native extension module.
 
 Compared to the standard library 'fractions' module in Py2.7 and
 Py3.4, 'quicktions' is currently about 10x faster, and still about
-5x faster than the current version in Python 3.5.
+5x faster than the current version in Python 3.5.  It's also about
+15x faster than the decimal module in Py2.7 (which has no C
+accelerator).
