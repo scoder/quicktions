@@ -27,6 +27,10 @@ cimport cython
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from cpython.version cimport PY_MAJOR_VERSION
 
+cdef extern from *:
+    ctypedef long Py_hash_t
+
+
 cdef object Rational, Decimal, math, numbers, sys, re, operator
 
 from numbers import Rational
