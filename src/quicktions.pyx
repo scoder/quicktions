@@ -758,14 +758,14 @@ cdef _div(an, ad, bn, bd):
 ctypedef object (*math_func)(an, ad, bn, bd)
 
 
-cdef _math_op(a, b, math_func monomorphic_operator, fallback_operator):
+cdef _math_op(a, b, math_func monomorphic_operator, str pyoperator_name):
     if isinstance(a, Fraction):
-        return forward(a, b, monomorphic_operator, fallback_operator)
+        return forward(a, b, monomorphic_operator, pyoperator_name)
     else:
-        return reverse(a, b, monomorphic_operator, fallback_operator)
+        return reverse(a, b, monomorphic_operator, pyoperator_name)
 
 
-cdef forward(a, b, math_func monomorphic_operator, str fallback_operator):
+cdef forward(a, b, math_func monomorphic_operator, str pyoperator_name):
     an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
     if type(b) is Fraction:
         return monomorphic_operator(an, ad, (<Fraction>b)._numerator, (<Fraction>b)._denominator)
@@ -774,23 +774,23 @@ cdef forward(a, b, math_func monomorphic_operator, str fallback_operator):
     elif isinstance(b, (Fraction, Rational)):
         return monomorphic_operator(an, ad, b.numerator, b.denominator)
     elif isinstance(b, float):
-        return getattr(operator, fallback_operator)(_as_float(an, ad), b)
+        return getattr(operator, pyoperator_name)(_as_float(an, ad), b)
     elif isinstance(b, complex):
-        return getattr(operator, fallback_operator)(complex(a), b)
+        return getattr(operator, pyoperator_name)(complex(a), b)
     else:
         return NotImplemented
 
 
-cdef reverse(a, b, math_func monomorphic_operator, str fallback_operator):
+cdef reverse(a, b, math_func monomorphic_operator, str pyoperator_name):
     bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
     if isinstance(a, (int, long)):
         return monomorphic_operator(a, 1, bn, bd)
     elif isinstance(a, Rational):
         return monomorphic_operator(a.numerator, a.denominator, bn, bd)
     elif isinstance(a, numbers.Real):
-        return getattr(operator, fallback_operator)(float(a), _as_float(bn, bd))
+        return getattr(operator, pyoperator_name)(float(a), _as_float(bn, bd))
     elif isinstance(a, numbers.Complex):
-        return getattr(operator, fallback_operator)(complex(a), complex(b))
+        return getattr(operator, pyoperator_name)(complex(a), complex(b))
     else:
         return NotImplemented
 
