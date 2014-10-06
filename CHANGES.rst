@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+Latest changes
+--------------
+
+* faster math operations
+
+
 0.4 (2014-10-06)
 ----------------
 
