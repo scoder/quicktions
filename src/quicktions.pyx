@@ -356,38 +356,23 @@ cdef class Fraction:
 
     def __add__(a, b):
         """a + b"""
-        if isinstance(a, Fraction):
-            return forward(a, b, _add, operator.add)
-        else:
-            return reverse(a, b, _add, operator.add)
+        return _math_op(a, b, _add, operator.add)
 
     def __sub__(a, b):
         """a - b"""
-        if isinstance(a, Fraction):
-            return forward(a, b, _sub, operator.sub)
-        else:
-            return reverse(a, b, _sub, operator.sub)
+        return _math_op(a, b, _sub, operator.sub)
 
     def __mul__(a, b):
         """a * b"""
-        if isinstance(a, Fraction):
-            return forward(a, b, _mul, operator.mul)
-        else:
-            return reverse(a, b, _mul, operator.mul)
+        return _math_op(a, b, _mul, operator.mul)
 
     def __div__(a, b):
         """a / b"""
-        if isinstance(a, Fraction):
-            return forward(a, b, _div, operator.div)
-        else:
-            return reverse(a, b, _div, operator.div)
+        return _math_op(a, b, _div, operator.div)
 
     def __truediv__(a, b):
         """a / b"""
-        if isinstance(a, Fraction):
-            return forward(a, b, _div, operator.truediv)
-        else:
-            return reverse(a, b, _div, operator.truediv)
+        return _math_op(a, b, _div, operator.truediv)
 
     def __floordiv__(a, b):
         """a // b"""
@@ -815,6 +800,13 @@ cdef _div(a, b):
 
 
 ctypedef object (*math_func)(object a, object b)
+
+
+cdef _math_op(a, b, math_func monomorphic_operator, fallback_operator):
+    if isinstance(a, Fraction):
+        return forward(a, b, monomorphic_operator, fallback_operator)
+    else:
+        return reverse(a, b, monomorphic_operator, fallback_operator)
 
 
 cdef forward(a, b, math_func monomorphic_operator, fallback_operator):
