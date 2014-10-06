@@ -375,6 +375,13 @@ cdef class Fraction:
         else:
             return reverse(a, b, _mul, operator.mul)
 
+    def __div__(a, b):
+        """a / b"""
+        if isinstance(a, Fraction):
+            return forward(a, b, _div, operator.div)
+        else:
+            return reverse(a, b, _div, operator.div)
+
     def __truediv__(a, b):
         """a / b"""
         if isinstance(a, Fraction):
