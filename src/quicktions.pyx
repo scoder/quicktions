@@ -21,7 +21,7 @@ from __future__ import division
 
 __all__ = ['Fraction']
 
-__version__ = '0.3'
+__version__ = '0.4'
 
 cimport cython
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE

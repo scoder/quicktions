@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+0.4 (2014-10-06)
+----------------
+
+* enable legacy division support in Python 2.x
+
+
 0.3 (2014-10-05)
 ----------------
 
