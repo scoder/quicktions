@@ -1,4 +1,4 @@
-# cython: language_level=3, profile=True
+# cython: profile=True
 
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014 Python Software Foundation; All Rights Reserved
@@ -16,7 +16,7 @@ This is an almost-drop-in replacement for the standard library's
 "fractions.Fraction".
 """
 
-from __future__ import division
+from __future__ import division, absolute_import, print_function
 
 
 __all__ = ['Fraction']
