@@ -356,23 +356,23 @@ cdef class Fraction:
 
     def __add__(a, b):
         """a + b"""
-        return _math_op(a, b, _add, operator.add)
+        return _math_op(a, b, _add, 'add')
 
     def __sub__(a, b):
         """a - b"""
-        return _math_op(a, b, _sub, operator.sub)
+        return _math_op(a, b, _sub, 'sub')
 
     def __mul__(a, b):
         """a * b"""
-        return _math_op(a, b, _mul, operator.mul)
+        return _math_op(a, b, _mul, 'mul')
 
     def __div__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, operator.div)
+        return _math_op(a, b, _div, 'div')
 
     def __truediv__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, operator.truediv)
+        return _math_op(a, b, _div, 'truediv')
 
     def __floordiv__(a, b):
         """a // b"""
@@ -491,7 +491,7 @@ cdef class Fraction:
         division rather than casting one side to float before dividing
         so that ratios of huge integers convert without overflowing.
         """
-        return self.numerator / self.denominator
+        return _as_float(self.numerator, self.denominator)
 
     # Concrete implementations of Complex abstract methods.
     def __complex__(self):
@@ -659,6 +659,10 @@ cdef _pow(an, ad, bn, bd):
             return float(an / ad) ** (bn / bd)
 
 
+cdef _as_float(numerator, denominator):
+    return numerator / denominator
+
+
 """
 In general, we want to implement the arithmetic operations so
 that mixed-mode operations either call an implementation whose
@@ -734,72 +738,23 @@ uses similar boilerplate code:
 """
 
 
-cdef _add(a, b):
-    """a + b"""
-    if type(a) is Fraction:
-        an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
-    elif isinstance(a, (int, long)):
-        an, ad = a, 1
-    else:
-        an, ad = a.numerator, a.denominator
-    if type(b) is Fraction:
-        bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
-    elif isinstance(b, (int, long)):
-        bn, bd = b, 1
-    else:
-        bn, bd = b.numerator, b.denominator
+cdef _add(an, ad, bn, bd):
     return Fraction(an * bd + bn * ad, ad * bd)
 
-cdef _sub(a, b):
+cdef _sub(an, ad, bn, bd):
     """a - b"""
-    if type(a) is Fraction:
-        an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
-    elif isinstance(a, (int, long)):
-        an, ad = a, 1
-    else:
-        an, ad = a.numerator, a.denominator
-    if type(b) is Fraction:
-        bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
-    elif isinstance(b, (int, long)):
-        bn, bd = b, 1
-    else:
-        bn, bd = b.numerator, b.denominator
     return Fraction(an * bd - bn * ad, ad * bd)
 
-cdef _mul(a, b):
+cdef _mul(an, ad, bn, bd):
     """a * b"""
-    if type(a) is Fraction:
-        an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
-    elif isinstance(a, (int, long)):
-        an, ad = a, 1
-    else:
-        an, ad = a.numerator, a.denominator
-    if type(b) is Fraction:
-        bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
-    elif isinstance(b, (int, long)):
-        bn, bd = b, 1
-    else:
-        bn, bd = b.numerator, b.denominator
     return Fraction(an * bn, ad * bd)
 
-cdef _div(a, b):
+cdef _div(an, ad, bn, bd):
     """a / b"""
-    if type(a) is Fraction:
-        an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
-    elif isinstance(a, (int, long)):
-        an, ad = a, 1
-    else:
-        an, ad = a.numerator, a.denominator
-    if type(b) is Fraction:
-        bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
-    elif isinstance(b, (int, long)):
-        bn, bd = b, 1
-    else:
-        bn, bd = b.numerator, b.denominator
     return Fraction(an * bd, ad * bn)
 
 
-ctypedef object (*math_func)(object a, object b)
+ctypedef object (*math_func)(an, ad, bn, bd)
 
 
 cdef _math_op(a, b, math_func monomorphic_operator, fallback_operator):
@@ -809,25 +764,32 @@ cdef _math_op(a, b, math_func monomorphic_operator, fallback_operator):
         return reverse(a, b, monomorphic_operator, fallback_operator)
 
 
-cdef forward(a, b, math_func monomorphic_operator, fallback_operator):
-    if isinstance(b, (int, long, Fraction)):
-        return monomorphic_operator(a, b)
+cdef forward(a, b, math_func monomorphic_operator, str fallback_operator):
+    an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
+    if type(b) is Fraction:
+        return monomorphic_operator(an, ad, (<Fraction>b)._numerator, (<Fraction>b)._denominator)
+    elif isinstance(b, (int, long)):
+        return monomorphic_operator(an, ad, b, 1)
+    elif isinstance(b, (Fraction, Rational)):
+        return monomorphic_operator(an, ad, b.numerator, b.denominator)
     elif isinstance(b, float):
-        return fallback_operator(float(a), b)
+        return getattr(operator, fallback_operator)(_as_float(an, ad), b)
     elif isinstance(b, complex):
-        return fallback_operator(complex(a), b)
+        return getattr(operator, fallback_operator)(complex(a), b)
     else:
         return NotImplemented
 
 
-cdef reverse(a, b, math_func monomorphic_operator, fallback_operator):
-    if isinstance(a, (int, long, Fraction, Rational)):
-        # Includes ints.
-        return monomorphic_operator(a, b)
+cdef reverse(a, b, math_func monomorphic_operator, str fallback_operator):
+    bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
+    if isinstance(a, (int, long)):
+        return monomorphic_operator(a, 1, bn, bd)
+    elif isinstance(a, Rational):
+        return monomorphic_operator(a.numerator, a.denominator, bn, bd)
     elif isinstance(a, numbers.Real):
-        return fallback_operator(float(a), float(b))
+        return getattr(operator, fallback_operator)(float(a), _as_float(bn, bd))
     elif isinstance(a, numbers.Complex):
-        return fallback_operator(complex(a), complex(b))
+        return getattr(operator, fallback_operator)(complex(a), complex(b))
     else:
         return NotImplemented
 
