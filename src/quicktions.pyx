@@ -739,6 +739,7 @@ uses similar boilerplate code:
 
 
 cdef _add(an, ad, bn, bd):
+    """a + b"""
     return Fraction(an * bd + bn * ad, ad * bd)
 
 cdef _sub(an, ad, bn, bd):
