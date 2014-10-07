@@ -43,14 +43,12 @@ import sys
 
 
 cpdef _gcd(a, b):
-    """Calculate the Greatest Common Divisor of a and b.
-
-    Unless b == 0, the result will have the same sign as b (so that when
-    b is divided by it, the result comes out positive).
+    """Calculate the Greatest Common Divisor of a and b as a non-negative number.
     """
     # Try doing all computation in C space.  If the numbers are too
     # large at the beginning, retry after each iteration until they
     # are small enough.
+    cdef unsigned long long au, bu
     cdef long long ai, bi
     while b:
         try:
@@ -58,11 +56,14 @@ cpdef _gcd(a, b):
         except OverflowError:
             pass
         else:
-            while bi:
-                ai, bi = bi, ai%bi
-            return ai
+            # switch to C space
+            au = abs(ai)
+            bu = abs(bi)
+            while bu:
+                au, bu = bu, au%bu
+            return au
         a, b = b, a%b
-    return a
+    return abs(a)
 
 
 # Constants related to the hash implementation;  hash(x) is based
@@ -136,7 +137,7 @@ cdef class Fraction:
     cdef _denominator
     cdef Py_hash_t _hash
 
-    def __cinit__(self, numerator=0, denominator=None, _normalize=True):
+    def __cinit__(self, numerator=0, denominator=None, bint _normalize=True):
         cdef Fraction value
         self._hash = -1
         if denominator is None:
@@ -229,10 +230,13 @@ cdef class Fraction:
             g = _gcd(numerator, denominator)
             # NOTE: 'is' tests on integers are generally a bad idea, but
             # they are fast and if they fail here, it'll still be correct
-            if g is -1:
-                numerator = -numerator
-                denominator = -denominator
-            elif g is not 1:
+            if denominator < 0:
+                if g is 1:
+                    numerator = -numerator
+                    denominator = -denominator
+                else:
+                    g = -g
+            if g is not 1:
                 numerator //= g
                 denominator //= g
         self._numerator = numerator
