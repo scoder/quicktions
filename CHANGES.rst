@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+0.6 (2014-10-09)
+----------------
+
+* faster normalisation (and thus instantiation)
+
+
 0.5 (2014-10-06)
 ----------------
 
