@@ -1,6 +1,14 @@
 ChangeLog
 =========
 
+0.7 (2014-10-09)
+----------------
+
+* faster instantiation from float and string values
+
+* fix test in Python 2.x
+
+
 0.6 (2014-10-09)
 ----------------
 
