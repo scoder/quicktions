@@ -164,25 +164,27 @@ cdef class Fraction:
                 if m is None:
                     raise ValueError('Invalid literal for Fraction: %r' %
                                      numerator)
-                numerator = int(m.group('num') or '0')
-                denom = m.group('denom')
+                group = m.group
+                numerator = int(group('num') or 0)
+                denom = group('denom')
                 if denom:
                     denominator = int(denom)
                 else:
-                    denominator = 1
-                    decimal = m.group('decimal')
+                    decimal = group('decimal')
                     if decimal:
                         scale = 10**len(decimal)
                         numerator = numerator * scale + int(decimal)
-                        denominator *= scale
-                    exp = m.group('exp')
+                        denominator = scale
+                    else:
+                        denominator = 1
+                    exp = group('exp')
                     if exp:
                         exp = int(exp)
                         if exp >= 0:
                             numerator *= 10**exp
                         else:
                             denominator *= 10**-exp
-                if m.group('sign') == '-':
+                if group('sign') == '-':
                     numerator = -numerator
                 # fall through to normalisation below
 
