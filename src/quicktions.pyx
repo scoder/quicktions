@@ -251,16 +251,21 @@ cdef class Fraction:
         Beware that Fraction.from_float(0.3) != Fraction(3, 10).
 
         """
+        try:
+            ratio = f.as_integer_ratio()
+        except (ValueError, OverflowError, AttributeError):
+            pass  # not something we can convert, raise concrete exceptions below
+        else:
+            return cls(*ratio)
+
         if isinstance(f, numbers.Integral):
             return cls(f)
         elif not isinstance(f, float):
             raise TypeError("%s.from_float() only takes floats, not %r (%s)" %
                             (cls.__name__, f, type(f).__name__))
-        if math.isnan(f):
-            raise ValueError("Cannot convert %r to %s." % (f, cls.__name__))
         if math.isinf(f):
             raise OverflowError("Cannot convert %r to %s." % (f, cls.__name__))
-        return cls(*f.as_integer_ratio())
+        raise ValueError("Cannot convert %r to %s." % (f, cls.__name__))
 
     @classmethod
     def from_decimal(cls, dec):
