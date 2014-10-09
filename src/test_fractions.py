@@ -101,14 +101,14 @@ class GcdTest(unittest.TestCase):
     def testMisc(self):
         self.assertEqual(0, gcd(0, 0))
         self.assertEqual(1, gcd(1, 0))
-        self.assertEqual(-1, gcd(-1, 0))
+        self.assertEqual(1, gcd(-1, 0))
         self.assertEqual(1, gcd(0, 1))
-        self.assertEqual(-1, gcd(0, -1))
+        self.assertEqual(1, gcd(0, -1))
         self.assertEqual(1, gcd(7, 1))
-        self.assertEqual(-1, gcd(7, -1))
+        self.assertEqual(1, gcd(7, -1))
         self.assertEqual(1, gcd(-23, 15))
         self.assertEqual(12, gcd(120, 84))
-        self.assertEqual(-12, gcd(84, -120))
+        self.assertEqual(12, gcd(84, -120))
         self.assertEqual(652560,
                          gcd(190738355881570558882299312308821696901058000,
                              76478560266291874249006856460326062498333440))
