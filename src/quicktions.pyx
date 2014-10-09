@@ -61,6 +61,9 @@ cpdef _gcd(a, b):
             bu = abs(bi)
             while bu:
                 au, bu = bu, au%bu
+            # try PyInt downcast in Py2
+            if PY_MAJOR_VERSION < 3 and au == <long>au:
+                return <long>au
             return au
         a, b = b, a%b
     return abs(a)
