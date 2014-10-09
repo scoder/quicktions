@@ -175,7 +175,7 @@ cdef class Fraction:
                 else:
                     decimal = group('decimal')
                     if decimal:
-                        scale = 10**len(decimal)
+                        scale = 10 ** <object>len(decimal)
                         numerator = numerator * scale + int(decimal)
                         denominator = scale
                     else:
