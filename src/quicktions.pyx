@@ -27,9 +27,6 @@ cimport cython
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from cpython.version cimport PY_MAJOR_VERSION
 
-cdef extern from *:
-    ctypedef long Py_hash_t
-
 
 cdef object Rational, Decimal, math, numbers, sys, re, operator
 
@@ -136,10 +133,6 @@ cdef class Fraction:
     Fraction(147, 100)
 
     """
-    cdef _numerator
-    cdef _denominator
-    cdef Py_hash_t _hash
-
     def __cinit__(self, numerator=0, denominator=None, bint _normalize=True):
         cdef Fraction value
         self._hash = -1

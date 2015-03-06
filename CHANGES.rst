@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+Latest changes
+--------------
+
+* public C-API in ``quicktions.pxd``
+
+
 0.7 (2014-10-09)
 ----------------
 
