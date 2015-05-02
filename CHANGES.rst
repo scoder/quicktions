@@ -4,6 +4,10 @@ ChangeLog
 Latest changes
 --------------
 
+* ``Fraction.imag`` property could return non-zero
+
+* parsing strings with long fraction parts could use an incorrect scale
+
 * public C-API in ``quicktions.pxd``
 
 
