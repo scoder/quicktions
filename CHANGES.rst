@@ -8,8 +8,6 @@ Latest changes
 
 * parsing strings with long fraction parts could use an incorrect scale
 
-* public C-API in ``quicktions.pxd``
-
 
 0.7 (2014-10-09)
 ----------------
