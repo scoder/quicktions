@@ -509,7 +509,10 @@ cdef class Fraction:
     real = property(__pos__, doc="Real numbers are their real component.")
 
     # == 0
-    imag = property(int, doc="Real numbers have no imaginary component.")
+    property imag:
+        "Real numbers have no imaginary component."
+        def __get__(self):
+            return 0
 
     def conjugate(self):
         """Conjugate is a no-op for Reals."""

@@ -248,6 +248,10 @@ class FractionTest(unittest.TestCase):
         self.assertRaises(AttributeError, setattr, r, 'denominator', 6)
         self.assertEqual((7, 3), _components(r))
 
+        self.assertEqual(0, r.imag)
+        self.assertRaises(AttributeError, setattr, r, 'imag', 12)
+        self.assertEqual(0, r.imag)
+
         '''
         # But if you _really_ need to:
         r._numerator = 4
