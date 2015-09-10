@@ -50,7 +50,7 @@ setup(
     package_dir={'': 'src'},
 
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 6 - Mature",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
