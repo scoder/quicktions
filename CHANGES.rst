@@ -1,8 +1,8 @@
 ChangeLog
 =========
 
-Latest changes
---------------
+1.0 (2015-09-10)
+----------------
 
 * ``Fraction.imag`` property could return non-zero
 
