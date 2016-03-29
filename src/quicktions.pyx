@@ -31,6 +31,7 @@ cdef extern from *:
     ctypedef long Py_hash_t
 
 cdef object Rational, Decimal, math, numbers, sys, re, operator
+cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
 
 from numbers import Rational
 from decimal import Decimal
@@ -148,16 +149,14 @@ cdef class Fraction:
                 self._denominator = 1
                 return
 
+            elif isinstance(numerator, float):
+                # Exact conversion
+                self._numerator, self._denominator = numerator.as_integer_ratio()
+                return
+
             elif type(numerator) is Fraction:
                 self._numerator = (<Fraction>numerator)._numerator
                 self._denominator = (<Fraction>numerator)._denominator
-                return
-
-            elif isinstance(numerator, float):
-                # Exact conversion from float
-                value = Fraction.from_float(numerator)
-                self._numerator = value._numerator
-                self._denominator = value._denominator
                 return
 
             elif isinstance(numerator, basestring):
@@ -196,9 +195,13 @@ cdef class Fraction:
                 return
 
             elif isinstance(numerator, Decimal):
-                value = Fraction.from_decimal(numerator)
-                self._numerator = (<Fraction>value)._numerator
-                self._denominator = (<Fraction>value)._denominator
+                if _decimal_supports_integer_ratio:
+                    # Exact conversion
+                    self._numerator, self._denominator = numerator.as_integer_ratio()
+                else:
+                    value = Fraction.from_decimal(numerator)
+                    self._numerator = (<Fraction>value)._numerator
+                    self._denominator = (<Fraction>value)._denominator
                 return
 
             else:

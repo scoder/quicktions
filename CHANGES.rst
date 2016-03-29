@@ -1,6 +1,14 @@
 ChangeLog
 =========
 
+1.1 (2016-03-30)
+----------------
+
+* faster instantiation from float values
+
+* faster instantiation from Decimal values in Python 3.6
+
+
 1.0 (2015-09-10)
 ----------------
 
