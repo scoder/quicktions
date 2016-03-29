@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.1 (2016-03-30)
+1.1 (2016-03-29)
 ----------------
 
 * faster instantiation from float values
