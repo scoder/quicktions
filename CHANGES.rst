@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+1.2 (2016-04-08)
+----------------
+
+* change hash function in Python 2.x to match that of ``fractions.Fraction``
+
+
 1.1 (2016-03-29)
 ----------------
 
