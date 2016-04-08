@@ -609,6 +609,17 @@ class FractionTest(unittest.TestCase):
         # consistency with int and Decimal.  (See issue #10356.)
         self.assertEqual(hash(F(-1)), F(-1).__hash__())
 
+    def testHash_compare(self):
+        self.assertEqual(hash(fractions.Fraction(3, 2)), hash(F(3, 2)))
+        self.assertEqual(hash(fractions.Fraction(1, 2)), hash(F(1, 2)))
+        self.assertEqual(hash(fractions.Fraction(0, 2)), hash(F(0, 2)))
+        self.assertEqual(hash(fractions.Fraction(0, 1)), hash(F(0, 1)))
+        self.assertEqual(hash(fractions.Fraction(10, 1)), hash(F(10, 1)))
+        self.assertEqual(hash(fractions.Fraction(-1, 1)), hash(F(-1, 1)))
+        self.assertEqual(hash(fractions.Fraction(-1, 10)), hash(F(-1, 10)))
+        self.assertEqual(hash(fractions.Fraction(1.2)), hash(F(1.2)))
+        self.assertEqual(hash(fractions.Fraction(1.5)), hash(F(1.5)))
+
     def testApproximatePi(self):
         # Algorithm borrowed from
         # http://docs.python.org/lib/decimal-recipes.html

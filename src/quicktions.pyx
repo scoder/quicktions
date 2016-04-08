@@ -532,13 +532,29 @@ cdef class Fraction:
         if self._hash != -1:
             return self._hash
 
+        cdef Py_hash_t result
+
+        # Py2 and Py3 use completely different hash functions, we provide both
+        if PY_MAJOR_VERSION == 2:
+            if self._denominator == 1:
+                # Get integers right.
+                result = hash(self._numerator)
+            # Expensive check, but definitely correct.
+            if self == float(self):
+                result = hash(float(self))
+            else:
+                # Use tuple's hash to avoid a high collision rate on
+                # simple fractions.
+                result = hash((self._numerator, self._denominator))
+            self._hash = result
+            return result
+
         # In order to make sure that the hash of a Fraction agrees
         # with the hash of a numerically equal integer, float or
         # Decimal instance, we follow the rules for numeric hashes
         # outlined in the documentation.  (See library docs, 'Built-in
         # Types').
 
-        cdef Py_hash_t result
         # dinv is the inverse of self._denominator modulo the prime
         # _PyHASH_MODULUS, or 0 if self._denominator is divisible by
         # _PyHASH_MODULUS.
