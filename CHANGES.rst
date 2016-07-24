@@ -7,6 +7,8 @@ ChangeLog
 
 * repair the faster instantiation from Decimal values in Python 3.6
 
+* avoid potential glitch for certain large numbers in normalisation under Python 2.x
+
 
 1.2 (2016-04-08)
 ----------------

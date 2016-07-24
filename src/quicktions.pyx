@@ -29,6 +29,7 @@ from cpython.version cimport PY_MAJOR_VERSION
 
 cdef extern from *:
     ctypedef long Py_hash_t
+    cdef long LONG_MAX
 
 cdef object Rational, Decimal, math, numbers, sys, re, operator
 
@@ -63,7 +64,7 @@ cpdef _gcd(a, b):
             while bu:
                 au, bu = bu, au%bu
             # try PyInt downcast in Py2
-            if PY_MAJOR_VERSION < 3 and au == <long>au:
+            if PY_MAJOR_VERSION < 3 and au <= <unsigned long long>LONG_MAX:
                 return <long>au
             return au
         a, b = b, a%b
