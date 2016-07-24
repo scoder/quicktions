@@ -8,6 +8,13 @@ ext_modules = [
 ]
 
 try:
+    sys.argv.remove("--with-profile")
+except ValueError:
+    enable_profiling = False
+else:
+    enable_profiling = True
+
+try:
     sys.argv.remove("--with-cython")
 except ValueError:
     cythonize = None
@@ -19,7 +26,10 @@ else:
     except ImportError:
         cythonize = None
     else:
-        ext_modules = cythonize(ext_modules)
+        compiler_directives = {}
+        if enable_profiling:
+            compiler_directives['profile'] = True
+        ext_modules = cythonize(ext_modules, compiler_directives=compiler_directives)
 
 if cythonize is None:
     for ext_module in ext_modules:
