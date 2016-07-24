@@ -31,7 +31,6 @@ cdef extern from *:
     ctypedef long Py_hash_t
 
 cdef object Rational, Decimal, math, numbers, sys, re, operator
-cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
 
 from numbers import Rational
 from decimal import Decimal
@@ -40,6 +39,8 @@ import numbers
 import operator
 import re
 import sys
+
+cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
 
 
 cpdef _gcd(a, b):
