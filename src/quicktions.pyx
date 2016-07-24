@@ -3,7 +3,7 @@
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014 Python Software Foundation; All Rights Reserved
 #
-# Based on the "fractions" module in CPython 3.4.
+# Based on the "fractions" module in CPython 3.4/5.
 # https://hg.python.org/cpython/file/b18288f24501/Lib/fractions.py
 #
 # Adapted for efficient Cython compilation by Stefan Behnel.
@@ -21,7 +21,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['Fraction']
 
-__version__ = '1.2'
+__version__ = '1.3'
 
 cimport cython
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE

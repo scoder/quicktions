@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+
+1.3 (2016-07-24)
+----------------
+
+* repair the faster instantiation from Decimal values in Python 3.6
+
+
 1.2 (2016-04-08)
 ----------------
 
