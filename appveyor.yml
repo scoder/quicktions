@@ -1,0 +1,76 @@
+# parts from
+# - matrix: https://github.com/pythonnet/pythonnet/blob/master/appveyor.yml
+# - Visual Studio 2010 py33 py34 on x64: https://github.com/ogrisel/python-appveyor-demo/blob/master/appveyor/run_with_env.cmd
+
+branches:
+  only:
+    - /default/
+
+platform:
+  - x86
+  - x64
+
+environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    CMD_IN_ENV: 'cmd /E:ON /V:ON /C .\appveyor_env.cmd'
+
+  # CIBW_BEFORE_BUILD: python build_ext --with-cython --inplace
+  # TWINE_USERNAME: scoder
+  # Note: TWINE_PASSWORD is set in Appveyor settings
+
+  matrix:
+    - PYTHON_VERSION: 2.7
+    - PYTHON_VERSION: 3.4
+    - PYTHON_VERSION: 3.5
+    - PYTHON_VERSION: 3.6
+
+init:
+  - set PY_VER=%PYTHON_VERSION:.=%
+  - set TOXENV=py%PY_VER%
+  - set PYTHON=C:\PYTHON%PY_VER%
+  - if %PLATFORM%==x64 (set PYTHON=%PYTHON%-x64)
+  - set TOXPYTHON=%PYTHON%\python.exe
+
+  # Put desired Python version in PATH
+  - set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
+
+  - 'ECHO %TOXENV% '
+  - python --version
+
+install:
+  - ECHO 'Installed SDKs:'
+  - ps: 'ls "C:/Program Files/Microsoft SDKs/Windows"'
+  - pip install --upgrade pip
+  - pip install -r requirements-appveyor.txt
+  - python setup.py build_ext --inplace --with-cython
+
+build: false  # First tests then build (is python not C)
+
+test_script:
+  - tox -e %TOXENV%-windows
+
+after_test:
+  - pip install --upgrade wheel
+  - python setup.py build_ext --inplace
+  - rm -rf build # account for: https://bitbucket.org/pypa/wheel/issues/147/bdist_wheel-should-start-by-cleaning-up
+  - python setup.py sdist bdist_wheel
+
+artifacts:
+  # bdist_wheel puts your built wheel in the dist directory
+  - path: "wheelhouse\\*.whl"
+    name: Wheels
+  # Where in the appveyor cloud are the wheels pushed to?
+  # https://www.appveyor.com/docs/packaging-artifacts/#permalink-to-the-last-successful-build-artifact
+  # borrowed from https://github.com/joerick/pyinstrument_cext/blob/master/appveyor.yml#L11-L15
+  # - ps: >-
+  #     if ($env:APPVEYOR_REPO_TAG -eq "true") {
+  #       python -m pip install twine
+  #       python -m twine upload (resolve-path wheelhouse\*.whl)
+  #    }
+
+on_failure:
+  - ps: dir "env:"
+  - ps: get-content .tox\*\log\*
