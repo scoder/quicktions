@@ -60,7 +60,7 @@ after_test:
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
-  - path: "wheel\\*.whl"
+  - path: "dist\\*.whl"
     name: Wheels
   # Where in the appveyor cloud are the wheels pushed to?
   # https://www.appveyor.com/docs/packaging-artifacts/#permalink-to-the-last-successful-build-artifact
