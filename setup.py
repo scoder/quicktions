@@ -1,12 +1,13 @@
 
 import sys
 import re
-from distutils.core import setup, Extension
 
 try:
     import setuptools
 except ImportError:
     pass
+
+from distutils.core import setup, Extension
 
 
 ext_modules = [
