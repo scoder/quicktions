@@ -3,6 +3,12 @@ import sys
 import re
 from distutils.core import setup, Extension
 
+try:
+    import setuptools
+except ImportError:
+    pass
+
+
 ext_modules = [
     Extension("quicktions", ["src/quicktions.pyx"]),
 ]
