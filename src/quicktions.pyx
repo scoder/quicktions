@@ -579,16 +579,6 @@ cdef class Fraction:
             elif op == Py_NE:
                 result = (<Fraction>a)._eq(b)
                 return NotImplemented if result is NotImplemented else not result
-            elif op == Py_LT:
-                pyop = operator.lt
-            elif op == Py_GT:
-                pyop = operator.gt
-            elif op == Py_LE:
-                pyop = operator.le
-            elif op == Py_GE:
-                pyop = operator.ge
-            else:
-                return NotImplemented
         else:
             a, b = b, a
             if op == Py_EQ:
@@ -597,16 +587,16 @@ cdef class Fraction:
                 result = (<Fraction>a)._eq(b)
                 return NotImplemented if result is NotImplemented else not result
             elif op == Py_LT:
-                pyop = operator.ge
+                op = Py_GE
             elif op == Py_GT:
-                pyop = operator.le
+                op = Py_LE
             elif op == Py_LE:
-                pyop = operator.gt
+                op = Py_GT
             elif op == Py_GE:
-                pyop = operator.lt
+                op = Py_LT
             else:
                 return NotImplemented
-        return (<Fraction>a)._richcmp(b, pyop)
+        return (<Fraction>a)._richcmp(b, op)
 
     @cython.final
     cdef _eq(a, b):
@@ -630,7 +620,7 @@ cdef class Fraction:
         return NotImplemented
 
     @cython.final
-    cdef _richcmp(self, other, op):
+    cdef _richcmp(self, other, int op):
         """Helper for comparison operators, for internal use only.
 
         Implement comparison between a Rational instance `self`, and
@@ -642,20 +632,36 @@ cdef class Fraction:
         """
         # convert other to a Rational instance where reasonable.
         if isinstance(other, (int, long)):
-            return op(self._numerator, self._denominator * other)
-        if isinstance(other, (Fraction, Rational)):
-            return op(self._numerator * other.denominator,
-                      self._denominator * other.numerator)
-        if isinstance(other, float):
+            a = self._numerator
+            b = self._denominator * other
+        elif type(other) is Fraction:
+            a = self._numerator * (<Fraction>other)._denominator
+            b = self._denominator * (<Fraction>other)._numerator
+        elif isinstance(other, float):
             if math.isnan(other) or math.isinf(other):
-                return op(0.0, other)
+                a, b = 0.0, other  # Comparison to 0.0 is just as good as any.
             else:
-                return op(self, self.from_float(other))
-        # comparisons with complex should raise a TypeError, for consistency
-        # with int<->complex, float<->complex, and complex<->complex comparisons.
-        if PY_MAJOR_VERSION < 3 and isinstance(other, complex):
-            raise TypeError("no ordering relation is defined for complex numbers")
-        return NotImplemented
+                return self._richcmp(self.from_float(other), op)
+        elif isinstance(other, (Fraction, Rational)):
+            a = self._numerator * other.denominator
+            b = self._denominator * other.numerator
+        else:
+            # comparisons with complex should raise a TypeError, for consistency
+            # with int<->complex, float<->complex, and complex<->complex comparisons.
+            if PY_MAJOR_VERSION < 3 and isinstance(other, complex):
+                raise TypeError("no ordering relation is defined for complex numbers")
+            return NotImplemented
+
+        if op == Py_LT:
+            return a < b
+        elif op == Py_GT:
+            return a > b
+        elif op == Py_LE:
+            return a <= b
+        elif op == Py_GE:
+            return a >= b
+        else:
+            return NotImplemented
 
     def __bool__(self):
         """a != 0"""
