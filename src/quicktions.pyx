@@ -352,13 +352,13 @@ cdef class Fraction:
         else:
             return bound1
 
-    property numerator:
-        def __get__(a):
-            return a._numerator
+    @property
+    def numerator(self):
+        return self._numerator
 
-    property denominator:
-        def __get__(a):
-            return a._denominator
+    @property
+    def denominator(self):
+        return self._denominator
 
     def __repr__(self):
         """repr(self)"""
@@ -520,10 +520,10 @@ cdef class Fraction:
     real = property(__pos__, doc="Real numbers are their real component.")
 
     # == 0
-    property imag:
+    @property
+    def imag(self):
         "Real numbers have no imaginary component."
-        def __get__(self):
-            return 0
+        return 0
 
     def conjugate(self):
         """Conjugate is a no-op for Reals."""
