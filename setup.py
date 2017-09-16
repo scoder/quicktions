@@ -61,6 +61,7 @@ setup(
     long_description=long_description,
     author="Stefan Behnel",
     author_email="stefan_ml@behnel.de",
+    url="https://github.com/scoder/quicktions",
     #bugtrack_url="https://github.com/scoder/quicktions/issues",
 
     ext_modules=ext_modules,
