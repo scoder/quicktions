@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+1.4 (2017-09-16)
+----------------
+
+* Rebuilt using Cython 0.26.1 to improve support of Python 3.7.
+
 
 1.3 (2016-07-24)
 ----------------
