@@ -6,6 +6,8 @@ ChangeLog
 
 * Result of power operator (``**``) was not normalised for negative values.
 
+* Built using Cython 0.27.2.
+
 
 1.4 (2017-09-16)
 ----------------
