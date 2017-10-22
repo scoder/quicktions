@@ -162,6 +162,7 @@ class FractionTest(unittest.TestCase):
         self.assertRaises(TypeError, F, "3/2", 3)
         self.assertRaises(TypeError, F, 3, 0j)
         self.assertRaises(TypeError, F, 3, 1j)
+        self.assertRaises(TypeError, F, 1, 2, 3)
 
     def testInitFromFloat(self):
         self.assertEqual((5, 2), _components(F(2.5)))

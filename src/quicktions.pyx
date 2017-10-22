@@ -142,7 +142,7 @@ cdef class Fraction:
     cdef _denominator
     cdef Py_hash_t _hash
 
-    def __cinit__(self, numerator=0, denominator=None, bint _normalize=True):
+    def __cinit__(self, numerator=0, denominator=None, *, bint _normalize=True):
         cdef Fraction value
         self._hash = -1
         if denominator is None:
