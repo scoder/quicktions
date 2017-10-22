@@ -1,6 +1,6 @@
 tox
 pytest
 coverage
-Cython==0.26.1
+Cython==0.27.2
 codecov
 wheel
