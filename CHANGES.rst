@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+1.5 (2017-10-22)
+----------------
+
+* Result of power operator (``**``) was not normalised for negative values.
+
+
 1.4 (2017-09-16)
 ----------------
 

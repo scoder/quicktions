@@ -689,9 +689,13 @@ cdef _pow(an, ad, bn, bd):
             return Fraction(an ** bn,
                             ad ** bn,
                             _normalize=False)
-        else:
+        elif an >= 0:
             return Fraction(ad ** -bn,
                             an ** -bn,
+                            _normalize=False)
+        else:
+            return Fraction((-ad) ** -bn,
+                            (-an) ** -bn,
                             _normalize=False)
     else:
         # A fractional power will generally produce an
