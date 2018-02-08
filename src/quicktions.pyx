@@ -91,21 +91,6 @@ except AttributeError:  # pre Py3.2
     _PyHASH_INF = hash(float('+inf'))
 
 
-cdef object _parse_rational = re.compile(r"""
-    \A\s*                      # optional whitespace at the start, then
-    (?P<sign>[-+]?)            # an optional sign, then
-    (?=\d|\.\d)                # lookahead for digit or .digit
-    (?P<num>\d*)               # numerator (possibly empty)
-    (?:                        # followed by
-       (?:/(?P<denom>\d+))?    # an optional denominator
-    |                          # or
-       (?:\.(?P<decimal>\d*))? # an optional fractional part
-       (?:E(?P<exp>[-+]?\d+))? # and optional exponent
-    )
-    \s*\Z                      # and optional whitespace to finish
-""", re.VERBOSE | re.IGNORECASE).match
-
-
 cdef class Fraction:
     """A Rational number.
 
@@ -161,34 +146,12 @@ cdef class Fraction:
                 self._denominator = (<Fraction>numerator)._denominator
                 return
 
-            elif isinstance(numerator, basestring):
-                # Handle construction from strings.
-                m = _parse_rational(numerator)
-                if m is None:
-                    raise ValueError('Invalid literal for Fraction: %r' %
-                                     numerator)
-                group = m.group
-                numerator = int(group('num') or 0)
-                denom = group('denom')
-                if denom:
-                    denominator = int(denom)
-                else:
-                    decimal = group('decimal')
-                    if decimal:
-                        scale = 10 ** <object>len(decimal)
-                        numerator = numerator * scale + int(decimal)
-                        denominator = scale
-                    else:
-                        denominator = 1
-                    exp = group('exp')
-                    if exp:
-                        exp = int(exp)
-                        if exp >= 0:
-                            numerator *= 10**exp
-                        else:
-                            denominator *= 10**-exp
-                if group('sign') == '-':
-                    numerator = -numerator
+            elif isinstance(numerator, unicode):
+                numerator, denominator = _parse_fraction(<unicode>numerator)
+                # fall through to normalisation below
+
+            elif PY_MAJOR_VERSION < 3 and isinstance(numerator, bytes):
+                numerator, denominator = _parse_fraction(<bytes>numerator)
                 # fall through to normalisation below
 
             elif isinstance(numerator, (Fraction, Rational)):
@@ -234,7 +197,7 @@ cdef class Fraction:
                             "Rational instances")
 
         if denominator == 0:
-            raise ZeroDivisionError('Fraction(%s, 0)' % numerator)
+            raise ZeroDivisionError(f'Fraction({numerator}, 0)')
         if _normalize:
             g = _gcd(numerator, denominator)
             # NOTE: 'is' tests on integers are generally a bad idea, but
@@ -268,11 +231,10 @@ cdef class Fraction:
         if isinstance(f, numbers.Integral):
             return cls(f)
         elif not isinstance(f, float):
-            raise TypeError("%s.from_float() only takes floats, not %r (%s)" %
-                            (cls.__name__, f, type(f).__name__))
+            raise TypeError(f"{cls.__name__}.from_float() only takes floats, not {f!r} ({type(f).__name__})")
         if math.isinf(f):
-            raise OverflowError("Cannot convert %r to %s." % (f, cls.__name__))
-        raise ValueError("Cannot convert %r to %s." % (f, cls.__name__))
+            raise OverflowError(f"Cannot convert {f!r} to {cls.__name__}.")
+        raise ValueError(f"Cannot convert {f!r} to {cls.__name__}.")
 
     @classmethod
     def from_decimal(cls, dec):
@@ -281,13 +243,11 @@ cdef class Fraction:
             dec = Decimal(int(dec))
         elif not isinstance(dec, Decimal):
             raise TypeError(
-                "%s.from_decimal() only takes Decimals, not %r (%s)" %
-                (cls.__name__, dec, type(dec).__name__))
+                f"{cls.__name__}.from_decimal() only takes Decimals, not {dec!r} ({type(dec).__name__})")
         if dec.is_infinite():
-            raise OverflowError(
-                "Cannot convert %s to %s." % (dec, cls.__name__))
+            raise OverflowError(f"Cannot convert {dec} to {cls.__name__}.")
         if dec.is_nan():
-            raise ValueError("Cannot convert %s to %s." % (dec, cls.__name__))
+            raise ValueError(f"Cannot convert {dec} to {cls.__name__}.")
         sign, digits, exp = dec.as_tuple()
         digits = int(''.join(map(str, digits)))
         if sign:
@@ -683,6 +643,10 @@ cdef class Fraction:
         return type(self)(self._numerator, self._denominator)
 
 
+# Register with Python's numerical tower.
+Rational.register(Fraction)
+
+
 cdef _pow(an, ad, bn, bd):
     if bd == 1:
         if bn >= 0:
@@ -842,4 +806,101 @@ cdef reverse(a, b, math_func monomorphic_operator, str pyoperator_name):
         return NotImplemented
 
 
-Rational.register(Fraction)
+ctypedef fused AnyString:
+    bytes
+    unicode
+
+
+cdef _raise_invalid_input(s):
+    raise ValueError(f'Invalid literal for Fraction: {s!r}') from None
+
+
+cdef tuple _parse_fraction(AnyString s):
+    cdef size_t i, dec_pos = 0, exp_pos = 0, dec_len = 0
+    cdef Py_UCS4 c
+    cdef AnyString numerator, denominator
+
+    allow_sign = True
+    require_separator = False
+    number_seen = False
+    has_underscores = False
+    for i, c in enumerate(s):
+        if c == u'/':
+            if not number_seen or dec_pos > 0 or exp_pos > 0:
+                _raise_invalid_input(s)
+            try:
+                return int(s[:i].replace('_', '') if has_underscores else s[:i]), int(s[i+1:].replace('_', ''))
+            except ValueError:
+                _raise_invalid_input(s)
+        elif c == u'.':
+            if dec_pos > 0 or exp_pos > 0:
+                _raise_invalid_input(s)
+            require_separator = False
+            number_seen = False
+            allow_sign = False
+            dec_pos = i
+        elif c in u'eE':
+            if exp_pos > 0 or i == 0:
+                _raise_invalid_input(s)
+            require_separator = False
+            number_seen = False
+            allow_sign = True
+            exp_pos = i
+        elif c in u'0123456789':
+            if require_separator:
+                _raise_invalid_input(s)
+            number_seen = True
+            require_separator = False
+            allow_sign = False
+            if dec_pos > 0 and exp_pos == 0:
+                dec_len += 1
+        elif c in u'+-':
+            if require_separator:
+                _raise_invalid_input(s)
+            require_separator = False
+            if not allow_sign:
+                _raise_invalid_input(s)
+            allow_sign = False
+        elif c == u'_':
+            if not number_seen or require_separator:
+                _raise_invalid_input(s)
+            has_underscores = True
+        else:
+            if c.isspace():
+                if number_seen or not allow_sign:
+                    require_separator = True
+            else:
+                _raise_invalid_input(s)
+
+    if exp_pos > 0:
+        shift = int(s[exp_pos+1:])
+        numerator = s[:exp_pos]
+    else:
+        shift = 0
+        numerator = s
+
+    neg = False
+    if dec_pos > 0:
+        numerator, decimal = numerator[:dec_pos], numerator[dec_pos+1:]
+        numerator = numerator.strip()
+        decimal = decimal.strip()
+        shift -= dec_len
+        numerator += decimal
+
+    if has_underscores:
+        numerator = numerator.replace('_', '')
+
+    try:
+        num = int(numerator)
+    except ValueError:
+        _raise_invalid_input(s)
+
+    denom = 1
+    if neg:
+        num = -num
+    if shift > 0:
+        num *= 10 ** shift
+    elif shift < 0:
+        denom = 10 ** -shift
+
+    return num, denom

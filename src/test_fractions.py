@@ -197,12 +197,23 @@ class FractionTest(unittest.TestCase):
         self.assertEqual((-16, 5), _components(F(" -3.2 ")))
         self.assertEqual((-3, 1), _components(F(" -3. ")))
         self.assertEqual((3, 5), _components(F(" .6 ")))
+        self.assertEqual((-1, 8), _components(F(" -.125 ")))
+        self.assertEqual((-5, 4), _components(F(" -.125e1 ")))
+        self.assertEqual((-1, 80), _components(F(" -.125e-1 ")))
         self.assertEqual((1, 3125), _components(F("32.e-5")))
         self.assertEqual((1000000, 1), _components(F("1E+06")))
         self.assertEqual((-12300, 1), _components(F("-1.23e4")))
+        self.assertEqual((-1, 800), _components(F("-.125e-2")))
         self.assertEqual((0, 1), _components(F(" .0e+0\t")))
         self.assertEqual((0, 1), _components(F("-0.000e0")))
+        self.assertEqual((0, 1), _components(F("-.000e0")))
 
+        # Errors in fractions but not quicktions:
+        self.assertEqual((3, 2), _components(F("3 / 2")))
+        self.assertEqual((3, 2), _components(F("3 / +2")))
+        self.assertEqual((-3, 2), _components(F("3 / -2")))
+
+        # Errors in both:
         self.assertRaisesMessage(
             ZeroDivisionError, "Fraction(3, 0)",
             F, "3/0")
@@ -212,13 +223,13 @@ class FractionTest(unittest.TestCase):
         self.assertRaisesMessage(
             ValueError, "Invalid literal for Fraction: '/2'",
             F, "/2")
-        self.assertRaisesMessage(
-            ValueError, "Invalid literal for Fraction: '3 /2'",
-            F, "3 /2")
-        self.assertRaisesMessage(
-            # Denominators don't need a sign.
-            ValueError, "Invalid literal for Fraction: '3/+2'",
-            F, "3/+2")
+#        self.assertRaisesMessage(
+#            ValueError, "Invalid literal for Fraction: '3 /2'",
+#            F, "3 /2")
+#        self.assertRaisesMessage(
+#            # Denominators don't need a sign.
+#            ValueError, "Invalid literal for Fraction: '3/+2'",
+#            F, "3/+2")
         self.assertRaisesMessage(
             # Imitate float's parsing.
             ValueError, "Invalid literal for Fraction: '+ 3/2'",
