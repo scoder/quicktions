@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+1.6 (2018-??-??)
+----------------
+
+* Speed up Fraction creation from a string value by 2-3x.
+
+
 1.5 (2017-10-22)
 ----------------
 
