@@ -29,6 +29,7 @@ from cpython.version cimport PY_MAJOR_VERSION
 
 cdef extern from *:
     cdef long LONG_MAX
+    cdef long long PY_LLONG_MIN, PY_LLONG_MAX
 
 cdef object Rational, Decimal, math, numbers, operator, sys
 
@@ -40,6 +41,12 @@ import operator
 import sys
 
 cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
+
+
+cdef unsigned long long _abs(long long x):
+    if x == PY_LLONG_MIN:
+        return (<unsigned long long>PY_LLONG_MAX) + 1
+    return abs(x)
 
 
 cpdef _gcd(a, b):
@@ -57,8 +64,8 @@ cpdef _gcd(a, b):
             pass
         else:
             # switch to C space
-            au = abs(ai)
-            bu = abs(bi)
+            au = _abs(ai)
+            bu = _abs(bi)
             while bu:
                 au, bu = bu, au%bu
             # try PyInt downcast in Py2

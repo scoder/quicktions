@@ -117,6 +117,42 @@ class GcdTest(unittest.TestCase):
             gcd(83763289342793979220453055528167457860243376086879213707165435635135627040075,
                 33585776402955145260404154387726204875807368546078094789530226423049489520976))
 
+    def test_quicktions_limits(self):
+        # specifially for quicktions:
+        special_values = [
+            -2**32-1, -2**64-1, -2**128-1,
+            -2**32, -2**64, -2**128,
+            -2**32+1, -2**64+1, -2**128+1,
+            -2**31-1, -2**63-1, -2**127-1,
+            -2**31, -2**63, -2**127,
+            -2**31+1, -2**63+1, -2**127+1,
+            2**31, 2**63, 2**127,
+            2**31+1, 2**63+1, 2**127+1,
+            2**32-1, 2**64-1, 2**128-1,
+            2**32, 2**64, 2**128,
+            2**32+1, 2**64+1, 2**128+1,
+            ]
+        special = None
+        try:
+            for special in special_values:
+                self.assertEqual(1, gcd(special, 1))
+                self.assertEqual(1, gcd(1, special))
+                self.assertEqual(abs(special), gcd(special, special))
+                self.assertEqual(abs(special), gcd(special, special*3))
+                self.assertEqual(abs(special), gcd(special*3, special))
+
+                special *= 5
+                self.assertEqual(1, gcd(special, 1))
+                self.assertEqual(1, gcd(1, special))
+                self.assertEqual(5, gcd(special, 5))
+                self.assertEqual(5, gcd(5, special))
+                self.assertEqual(5 if special % 25 else 25, gcd(special, 125))
+                self.assertEqual(5 if special % 25 else 25, gcd(125, special))
+        except AssertionError as e:
+            assert len(e.args) == 1
+            e.args = ('[%s] %s' % (special, e),)
+            raise
+
 
 def _components(r):
     return (r.numerator, r.denominator)
