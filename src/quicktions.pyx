@@ -43,6 +43,30 @@ import sys
 cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
 
 
+# Cache widely used 10**x int objects.
+DEF CACHED_POW10 = 64
+
+cdef tuple _cache_pow10():
+    cdef int i
+    l = []
+    x = 1
+    for i in range(CACHED_POW10):
+        l.append(x)
+        x *= 10
+    return tuple(l)
+
+cdef tuple POW_10 = _cache_pow10()
+
+
+cdef pow10(Py_ssize_t i):
+    if 0 <= i < CACHED_POW10:
+        return POW_10[i]
+    else:
+        return 10 ** (<object> i)
+
+
+# Half-private GCD implementation.
+
 cdef unsigned long long _abs(long long x):
     if x == PY_LLONG_MIN:
         return (<unsigned long long>PY_LLONG_MAX) + 1
@@ -244,6 +268,7 @@ cdef class Fraction:
     @classmethod
     def from_decimal(cls, dec):
         """Converts a finite Decimal instance to a rational number, exactly."""
+        cdef Py_ssize_t exp
         if isinstance(dec, numbers.Integral):
             dec = Decimal(int(dec))
         elif not isinstance(dec, Decimal):
@@ -258,9 +283,9 @@ cdef class Fraction:
         if sign:
             digits = -digits
         if exp >= 0:
-            return cls(digits * 10 ** exp)
+            return cls(digits * pow10(exp))
         else:
-            return cls(digits, 10 ** -exp)
+            return cls(digits, pow10(-exp))
 
     def limit_denominator(self, max_denominator=1000000):
         """Closest Fraction to self with denominator at most max_denominator.
@@ -458,7 +483,7 @@ cdef class Fraction:
                 return floor
             else:
                 return floor + 1
-        shift = 10**abs(ndigits)
+        shift = pow10(abs(<Py_ssize_t>ndigits))
         # See _operator_fallbacks.forward to check that the results of
         # these operations will always be Fraction and therefore have
         # round().
@@ -822,6 +847,7 @@ cdef _raise_invalid_input(s):
 
 cdef tuple _parse_fraction(AnyString s):
     cdef size_t i, dec_pos = 0, exp_pos = 0, dec_len = 0
+    cdef Py_ssize_t shift
     cdef Py_UCS4 c
     cdef AnyString numerator, denominator
 
@@ -904,8 +930,8 @@ cdef tuple _parse_fraction(AnyString s):
     if neg:
         num = -num
     if shift > 0:
-        num *= 10 ** shift
+        num *= pow10(shift)
     elif shift < 0:
-        denom = 10 ** -shift
+        denom = pow10(-shift)
 
     return num, denom
