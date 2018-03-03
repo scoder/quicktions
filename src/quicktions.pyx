@@ -28,17 +28,15 @@ from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from cpython.version cimport PY_MAJOR_VERSION
 
 cdef extern from *:
-    ctypedef long Py_hash_t
     cdef long LONG_MAX
 
-cdef object Rational, Decimal, math, numbers, sys, re, operator
+cdef object Rational, Decimal, math, numbers, operator, sys
 
 from numbers import Rational
 from decimal import Decimal
 import math
 import numbers
 import operator
-import re
 import sys
 
 cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
