@@ -44,7 +44,7 @@ cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")
 
 
 # Cache widely used 10**x int objects.
-DEF CACHED_POW10 = 64
+DEF CACHED_POW10 = 58  # sys.getsizeof(tuple[58]) == 512 bytes  in Py3.7
 
 cdef tuple _cache_pow10():
     cdef int i
