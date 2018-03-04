@@ -25,11 +25,12 @@ __version__ = '1.5'
 
 cimport cython
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
-from cpython.version cimport PY_MAJOR_VERSION, PY_VERSION_HEX
+from cpython.version cimport PY_MAJOR_VERSION
 
 cdef extern from *:
     cdef long LONG_MAX
     cdef long long PY_LLONG_MIN, PY_LLONG_MAX
+    cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
 cdef object Rational, Decimal, math, numbers, operator, sys
 
@@ -841,136 +842,198 @@ ctypedef fused AnyString:
     unicode
 
 
+cdef enum ParserState:
+    BEGIN_SPACE          # '\s'*     ->  (BEGIN_SIGN, SMALL_NUM, START_DECIMAL_DOT)
+    BEGIN_SIGN           # [+-]      ->  (SMALL_NUM, SMALL_DECIMAL_DOT)
+    SMALL_NUM            # [0-9]+    ->  (SMALL_NUM, SMALL_NUM_US, NUM, NUM_SPACE, SMALL_DECIMAL_DOT, EXP_E, DENOM_START)
+    SMALL_NUM_US         # '_'       ->  (SMALL_NUM, NUM)
+    NUM                  # [0-9]+    ->  (NUM, NUM_US, NUM_SPACE, DECIMAL_DOT, EXP_E, DENOM_START)
+    NUM_US               # '_'       ->  (NUM)
+    NUM_SPACE            # '\s'+     ->  (DENOM_START)
+
+    # 1) floating point syntax
+    START_DECIMAL_DOT    # '.'       ->  (SMALL_DECIMAL)
+    SMALL_DECIMAL_DOT    # '.'       ->  (SMALL_DECIMAL, EXP_E, END_SPACE)
+    DECIMAL_DOT          # '.'       ->  (DECIMAL, EXP_E, END_SPACE)
+    SMALL_DECIMAL        # [0-9]+    ->  (SMALL_DECIMAL, SMALL_DECIMAL_US, DECIMAL, EXP_E, END_SPACE)
+    SMALL_DECIMAL_US     # '_'       ->  (SMALL_DECIMAL, DECIMAL)
+    DECIMAL              # [0-9]+    ->  (DECIMAL, DECIMAL_US, EXP_E, END_SPACE)
+    DECIMAL_US           # '_'       ->  (DECIMAL)
+    EXP_E                # [eE]      ->  (EXP_SIGN, EXP)
+    EXP_SIGN             # [+-]      ->  (EXP)
+    EXP                  # [0-9]+    ->  (EXP_US, END_SPACE)
+    EXP_US               # '_'       ->  (EXP)
+    END_SPACE            # '\s'+
+
+    # 2) "NOM / DENOM" syntax
+    DENOM_START          # '/'       ->  (DENOM_SIGN, SMALL_DENOM)
+    DENOM_SIGN           # [+-]      ->  (SMALL_DENOM)
+    SMALL_DENOM          # [0-9]+    ->  (SMALL_DENOM, SMALL_DENOM_US, DENOM, DENOM_SPACE)
+    SMALL_DENOM_US       # '_'       ->  (SMALL_DENOM)
+    DENOM                # [0-9]+    ->  (DENOM, DENOM_US, DENOM_SPACE)
+    DENOM_US             # '_'       ->  (DENOM)
+    DENOM_SPACE          # '\s'+
+
+
 cdef _raise_invalid_input(s):
     raise ValueError(f'Invalid literal for Fraction: {s!r}') from None
 
 
 cdef tuple _parse_fraction(AnyString s):
-    cdef size_t i, dec_pos = 0, exp_pos = 0, dec_len = 0
-    cdef Py_ssize_t shift
+    cdef size_t i
+    cdef Py_ssize_t decimal_len = 0
     cdef Py_UCS4 c
-    cdef AnyString numerator, denominator
+    cdef ParserState state = BEGIN_SPACE
 
-    allow_sign = True
-    require_separator = False
-    number_seen = False
-    has_underscores = False
+    cdef bint is_neg = False, exp_is_neg = False
+    cdef int digit
+    cdef long long inum = 0, idecimal = 0, idenom = 0, iexp = 0
+    cdef object num = None, decimal, denom
+
     for i, c in enumerate(s):
         if c == u'/':
-            if not number_seen or dec_pos > 0 or exp_pos > 0:
+            if state == SMALL_NUM:
+                num = inum
+            elif state in (NUM, NUM_SPACE):
+                pass
+            else:
                 _raise_invalid_input(s)
-            try:
-                return _parse_int(s, 0, i), _parse_int(s, i+1, len(s))
-            except ValueError:
-                _raise_invalid_input(s)
+            state = DENOM_START
         elif c == u'.':
-            if dec_pos > 0 or exp_pos > 0:
+            if state in (BEGIN_SPACE, BEGIN_SIGN):
+                state = START_DECIMAL_DOT
+            elif state == SMALL_NUM:
+                state = SMALL_DECIMAL_DOT
+            elif state == NUM:
+                state = DECIMAL_DOT
+            else:
                 _raise_invalid_input(s)
-            require_separator = False
-            number_seen = False
-            allow_sign = False
-            dec_pos = i
         elif c in u'eE':
-            if exp_pos > 0 or i == 0:
+            if state in (SMALL_NUM, SMALL_DECIMAL_DOT, SMALL_DECIMAL):
+                num = inum
+            elif state in (NUM, DECIMAL_DOT, DECIMAL):
+                pass
+            else:
                 _raise_invalid_input(s)
-            require_separator = False
-            number_seen = False
-            allow_sign = True
-            exp_pos = i
+            state = EXP_E
         elif c in u'0123456789':
-            if require_separator:
+            digit = (<int> c) - c'0'
+            if state in (BEGIN_SPACE, BEGIN_SIGN, SMALL_NUM, SMALL_NUM_US):
+                inum = inum * 10 + digit
+                state = SMALL_NUM
+                if inum > MAX_SMALL_NUMBER:
+                    num = inum
+                    state = NUM
+            elif state in (NUM, NUM_US):
+                num = num * 10 + digit
+                state = NUM
+            elif state in (START_DECIMAL_DOT, SMALL_DECIMAL_DOT, SMALL_DECIMAL, SMALL_DECIMAL_US):
+                decimal_len += 1
+                inum = inum * 10 + digit
+                state = SMALL_DECIMAL
+                if inum > MAX_SMALL_NUMBER:
+                    num = inum
+                    state = DECIMAL
+            elif state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
+                decimal_len += 1
+                num = num * 10 + digit
+                state = DECIMAL
+            elif state in (EXP_E, EXP_SIGN, EXP, EXP_US):
+                iexp = iexp * 10 + digit
+                if iexp > MAX_SMALL_NUMBER:
+                    raise OverflowError(f"Exponent too large for Fraction: {s!r}")
+                state = EXP
+            elif state in (DENOM_START, DENOM_SIGN, SMALL_DENOM, SMALL_DENOM_US):
+                idenom = idenom * 10 + digit
+                state = SMALL_DENOM
+                if idenom > MAX_SMALL_NUMBER:
+                    denom = idenom
+                    state = DENOM
+            elif state in (DENOM, DENOM_US):
+                denom = denom * 10 + digit
+                state = DENOM
+            else:
                 _raise_invalid_input(s)
-            number_seen = True
-            require_separator = False
-            allow_sign = False
-            if dec_pos > 0 and exp_pos == 0:
-                dec_len += 1
-        elif c in u'+-':
-            if require_separator:
+        elif c in u'-+':
+            if state == BEGIN_SPACE:
+                is_neg = c == u'-'
+                state = BEGIN_SIGN
+            elif state == EXP_E:
+                exp_is_neg = c == u'-'
+                state = EXP_SIGN
+            elif state == DENOM_START:
+                is_neg ^= (c == u'-')
+                state = DENOM_SIGN
+            else:
                 _raise_invalid_input(s)
-            require_separator = False
-            if not allow_sign:
-                _raise_invalid_input(s)
-            allow_sign = False
         elif c == u'_':
-            if not number_seen or require_separator:
+            if state == SMALL_NUM:
+                state = SMALL_NUM_US
+            elif state == NUM:
+                state = NUM_US
+            elif state == SMALL_DECIMAL:
+                state = SMALL_DECIMAL_US
+            elif state == DECIMAL:
+                state = DECIMAL_US
+            elif state == EXP:
+                state = EXP_US
+            elif state == SMALL_DENOM:
+                state = SMALL_DENOM_US
+            elif state == DENOM:
+                state = DENOM_US
+            else:
                 _raise_invalid_input(s)
-            has_underscores = True
         else:
             if c.isspace():
-                if number_seen or not allow_sign:
-                    require_separator = True
+                if state in (BEGIN_SPACE, NUM_SPACE, END_SPACE, DENOM_START, DENOM_SPACE):
+                    pass
+                elif state == SMALL_NUM:
+                    num = inum
+                    state = NUM_SPACE
+                elif state == NUM:
+                    state = NUM_SPACE
+                elif state in (SMALL_DECIMAL, SMALL_DECIMAL_DOT):
+                    num = inum
+                    state = END_SPACE
+                elif state in (DECIMAL, DECIMAL_DOT):
+                    state = END_SPACE
+                elif state == EXP:
+                    state = END_SPACE
+                elif state == SMALL_DENOM:
+                    denom = idenom
+                    state = DENOM_SPACE
+                elif state == DENOM:
+                    state = DENOM_SPACE
+                else:
+                    _raise_invalid_input(s)
             else:
                 _raise_invalid_input(s)
 
-    if exp_pos > 0:
-        shift = _parse_int(s, exp_pos+1, len(s))
+    if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT):
+        num = inum
+        denom = 1
+    elif state in (NUM, NUM_SPACE, DECIMAL_DOT, DECIMAL, EXP, END_SPACE):
+        denom = 1
+    elif state == SMALL_DENOM:
+        denom = idenom
+    elif state in (DENOM, DENOM_SPACE):
+        pass
     else:
-        exp_pos = len(s)
-        shift = 0
-
-    if dec_pos > 0:
-        shift -= dec_len
-
-    try:
-        num = _parse_int(s, 0, exp_pos, ignore_dot=dec_pos > 0)
-    except ValueError:
         _raise_invalid_input(s)
 
-    denom = 1
-    if shift > 0:
-        num *= pow10(shift)
-    elif shift < 0:
-        denom = pow10(-shift)
+    if exp_is_neg:
+        iexp = -iexp
+        iexp -= decimal_len
+        if iexp > 0:  # C wrap-around ?
+            raise OverflowError(f"Exponent too large for Fraction: {s!r}")
+    else:
+        iexp -= decimal_len
+
+    if is_neg:
+        num = -num
+    if iexp > 0:
+        num *= pow10(iexp)
+    elif iexp < 0:
+        denom = pow10(-iexp)
 
     return num, denom
-
-
-cdef _parse_int(AnyString s, Py_ssize_t start, Py_ssize_t end, bint ignore_dot=False):
-    while start < end and (<Py_UCS4> s[start]).isspace():
-        start += 1
-    while start < end and (<Py_UCS4> s[end-1]).isspace():
-        end -= 1
-
-    if end - start >= (sizeof(long long) * 8 - 2) // 3:
-        # Too close to the value range limit to be safe => fall back to slow version.
-        return int(s[start:end].replace('_', '') if PY_VERSION_HEX < 0x030600B1 else s[start:end])
-
-    if start >= end:
-        raise ValueError(f"Unexpected end of string when parsing integer value: {s[start:end]!r}")
-
-    is_negative = False
-    if s[start] == c'-':
-        is_negative = True
-        start += 1
-    elif s[start] == c'+':
-        start += 1
-
-    if s[start] == c'_':
-        raise ValueError(f"Invalid underscore in integer value: {s[start:end]!r}")
-
-    cdef Py_UCS4 c
-    cdef Py_ssize_t i
-    cdef long long intval = 0
-
-    underscore_allowed = False
-    for i, c in enumerate(s[start:end]):
-        if c in u'0123456789':
-            underscore_allowed = True
-            intval = 10 * intval + <int> c - c'0'
-        elif c == u'_':
-            if not underscore_allowed:
-                raise ValueError(f"Invalid underscore in integer value: {s[start+i]!r}")
-            underscore_allowed = False
-        elif c == u'.':
-            underscore_allowed = False
-            if not ignore_dot:
-                raise ValueError(f"Invalid character in integer value: {s[start+i]!r}")
-            ignore_dot = False  # only one dot allowed
-        else:
-            raise ValueError(f"Invalid character in integer value: {s[start+i]!r}")
-
-    if is_negative:
-        intval = -intval
-
-    return intval
