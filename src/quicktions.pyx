@@ -25,7 +25,7 @@ __version__ = '1.5'
 
 cimport cython
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
-from cpython.version cimport PY_MAJOR_VERSION
+from cpython.version cimport PY_MAJOR_VERSION, PY_VERSION_HEX
 
 cdef extern from *:
     cdef long LONG_MAX
@@ -860,7 +860,8 @@ cdef tuple _parse_fraction(AnyString s):
             if not number_seen or dec_pos > 0 or exp_pos > 0:
                 _raise_invalid_input(s)
             try:
-                return int(s[:i].replace('_', '') if has_underscores else s[:i]), int(s[i+1:].replace('_', ''))
+                return (int(s[:i].replace('_', '') if has_underscores else s[:i]),
+                        int(s[i+1:].replace('_', '') if PY_VERSION_HEX < 0x030600B1 else s[i+1:]))
             except ValueError:
                 _raise_invalid_input(s)
         elif c == u'.':
@@ -918,7 +919,7 @@ cdef tuple _parse_fraction(AnyString s):
         shift -= dec_len
         numerator += decimal
 
-    if has_underscores:
+    if PY_VERSION_HEX < 0x030600B1 and has_underscores:
         numerator = numerator.replace('_', '')
 
     try:
