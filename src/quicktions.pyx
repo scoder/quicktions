@@ -860,8 +860,7 @@ cdef tuple _parse_fraction(AnyString s):
             if not number_seen or dec_pos > 0 or exp_pos > 0:
                 _raise_invalid_input(s)
             try:
-                return (int(s[:i].replace('_', '') if has_underscores else s[:i]),
-                        int(s[i+1:].replace('_', '') if PY_VERSION_HEX < 0x030600B1 else s[i+1:]))
+                return _parse_int(s, 0, i), _parse_int(s, i+1, len(s))
             except ValueError:
                 _raise_invalid_input(s)
         elif c == u'.':
@@ -905,34 +904,73 @@ cdef tuple _parse_fraction(AnyString s):
                 _raise_invalid_input(s)
 
     if exp_pos > 0:
-        shift = int(s[exp_pos+1:])
-        numerator = s[:exp_pos]
+        shift = _parse_int(s, exp_pos+1, len(s))
     else:
+        exp_pos = len(s)
         shift = 0
-        numerator = s
 
-    neg = False
     if dec_pos > 0:
-        numerator, decimal = numerator[:dec_pos], numerator[dec_pos+1:]
-        numerator = numerator.strip()
-        decimal = decimal.strip()
         shift -= dec_len
-        numerator += decimal
-
-    if PY_VERSION_HEX < 0x030600B1 and has_underscores:
-        numerator = numerator.replace('_', '')
 
     try:
-        num = int(numerator)
+        num = _parse_int(s, 0, exp_pos, ignore_dot=dec_pos > 0)
     except ValueError:
         _raise_invalid_input(s)
 
     denom = 1
-    if neg:
-        num = -num
     if shift > 0:
         num *= pow10(shift)
     elif shift < 0:
         denom = pow10(-shift)
 
     return num, denom
+
+
+cdef _parse_int(AnyString s, Py_ssize_t start, Py_ssize_t end, bint ignore_dot=False):
+    while start < end and (<Py_UCS4> s[start]).isspace():
+        start += 1
+    while start < end and (<Py_UCS4> s[end-1]).isspace():
+        end -= 1
+
+    if end - start >= (sizeof(long long) * 8 - 2) // 3:
+        # Too close to the value range limit to be safe => fall back to slow version.
+        return int(s[start:end].replace('_', '') if PY_VERSION_HEX < 0x030600B1 else s[start:end])
+
+    if start >= end:
+        raise ValueError(f"Unexpected end of string when parsing integer value: {s[start:end]!r}")
+
+    is_negative = False
+    if s[start] == c'-':
+        is_negative = True
+        start += 1
+    elif s[start] == c'+':
+        start += 1
+
+    if s[start] == c'_':
+        raise ValueError(f"Invalid underscore in integer value: {s[start:end]!r}")
+
+    cdef Py_UCS4 c
+    cdef Py_ssize_t i
+    cdef long long intval = 0
+
+    underscore_allowed = False
+    for i, c in enumerate(s[start:end]):
+        if c in u'0123456789':
+            underscore_allowed = True
+            intval = 10 * intval + <int> c - c'0'
+        elif c == u'_':
+            if not underscore_allowed:
+                raise ValueError(f"Invalid underscore in integer value: {s[start+i]!r}")
+            underscore_allowed = False
+        elif c == u'.':
+            underscore_allowed = False
+            if not ignore_dot:
+                raise ValueError(f"Invalid character in integer value: {s[start+i]!r}")
+            ignore_dot = False  # only one dot allowed
+        else:
+            raise ValueError(f"Invalid character in integer value: {s[start+i]!r}")
+
+    if is_negative:
+        intval = -intval
+
+    return intval
