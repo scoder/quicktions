@@ -166,7 +166,7 @@ cdef class Fraction:
                 self._denominator = 1
                 return
 
-            elif isinstance(numerator, float):
+            elif type(numerator) is float:
                 # Exact conversion
                 self._numerator, self._denominator = numerator.as_integer_ratio()
                 return
@@ -183,6 +183,11 @@ cdef class Fraction:
             elif PY_MAJOR_VERSION < 3 and isinstance(numerator, bytes):
                 numerator, denominator = _parse_fraction(<bytes>numerator)
                 # fall through to normalisation below
+
+            elif isinstance(numerator, float):
+                # Exact conversion
+                self._numerator, self._denominator = numerator.as_integer_ratio()
+                return
 
             elif isinstance(numerator, (Fraction, Rational)):
                 self._numerator = numerator.numerator
