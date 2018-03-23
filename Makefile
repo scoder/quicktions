@@ -6,12 +6,17 @@ WITH_CYTHON := $(shell python -c 'from Cython.Build import cythonize' 2>/dev/nul
 MANYLINUX_IMAGE_X86_64=quay.io/pypa/manylinux1_x86_64
 MANYLINUX_IMAGE_686=quay.io/pypa/manylinux1_i686
 
-.PHONY: all local test clean realclean
+.PHONY: all local sdist test clean realclean
 
 all:  local
 
 local:
 	${PYTHON} setup.py build_ext --inplace $(WITH_CYTHON)
+
+sdist: dist/$(PACKAGE)-$(VERSION).tar.gz
+
+dist/$(PACKAGE)-$(VERSION).tar.gz:
+	$(PYTHON) setup.py sdist $(WITH_CYTHON)
 
 test: local
 	PYTHONPATH=src $(PYTHON) src/test_fractions.py
