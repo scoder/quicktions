@@ -31,29 +31,29 @@ script:
   #     python -m twine upload wheelhouse/*.whl
   #   fi
 
-matrix:
-  include:
-    - os: osx
-      osx_image: xcode6.4
-      python: 2.6
-      compiler: clang
-    - os: osx
-      osx_image: xcode6.4
-      python: 2.7
-      compiler: clang
-    - os: osx
-      osx_image: xcode6.4
-      python: 3.3
-      compiler: clang
-    - os: osx
-      osx_image: xcode6.4
-      python: 3.4
-      compiler: clang
-    - os: osx
-      osx_image: xcode6.4
-      python: 3.5
-      compiler: clang
-    - os: osx
-      osx_image: xcode6.4
-      python: 3.6
-      compiler: clang
+#matrix:
+#  include:
+#    - os: osx
+#      osx_image: xcode6.4
+#      python: 2.6
+#      compiler: clang
+#    - os: osx
+#      osx_image: xcode6.4
+#      python: 2.7
+#      compiler: clang
+#    - os: osx
+#      osx_image: xcode6.4
+#      python: 3.3
+#      compiler: clang
+#    - os: osx
+#      osx_image: xcode6.4
+#      python: 3.4
+#      compiler: clang
+#    - os: osx
+#      osx_image: xcode6.4
+#      python: 3.5
+#      compiler: clang
+#    - os: osx
+#      osx_image: xcode6.4
+#      python: 3.6
+#      compiler: clang
