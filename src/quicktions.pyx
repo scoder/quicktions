@@ -885,6 +885,10 @@ cdef _raise_invalid_input(s):
     raise ValueError(f'Invalid literal for Fraction: {s!r}') from None
 
 
+cdef _raise_parse_overflow(s):
+    raise OverflowError(f"Exponent too large for Fraction: {s!r}") from None
+
+
 cdef tuple _parse_fraction(AnyString s):
     cdef size_t i
     cdef Py_ssize_t decimal_len = 0
@@ -923,7 +927,7 @@ cdef tuple _parse_fraction(AnyString s):
             elif state in (EXP_E, EXP_SIGN, EXP, EXP_US):
                 iexp = iexp * 10 + digit
                 if iexp > MAX_SMALL_NUMBER:
-                    raise OverflowError(f"Exponent too large for Fraction: {s!r}")
+                    _raise_parse_overflow(s)
                 state = EXP
             elif state in (DENOM_START, DENOM_SIGN, SMALL_DENOM, SMALL_DENOM_US):
                 idenom = idenom * 10 + digit
@@ -1035,7 +1039,7 @@ cdef tuple _parse_fraction(AnyString s):
         iexp = -iexp
         iexp -= decimal_len
         if iexp > 0:  # C wrap-around ?
-            raise OverflowError(f"Exponent too large for Fraction: {s!r}")
+            _raise_parse_overflow(s)
     else:
         iexp -= decimal_len
 
