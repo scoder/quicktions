@@ -24,6 +24,7 @@ __all__ = ['Fraction']
 __version__ = '1.5'
 
 cimport cython
+from cpython.unicode cimport Py_UNICODE_TODECIMAL
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from cpython.version cimport PY_MAJOR_VERSION
 
@@ -896,33 +897,9 @@ cdef tuple _parse_fraction(AnyString s):
     cdef object num = None, decimal, denom
 
     for i, c in enumerate(s):
-        if c == u'/':
-            if state == SMALL_NUM:
-                num = inum
-            elif state in (NUM, NUM_SPACE):
-                pass
-            else:
-                _raise_invalid_input(s)
-            state = DENOM_START
-        elif c == u'.':
-            if state in (BEGIN_SPACE, BEGIN_SIGN):
-                state = START_DECIMAL_DOT
-            elif state == SMALL_NUM:
-                state = SMALL_DECIMAL_DOT
-            elif state == NUM:
-                state = DECIMAL_DOT
-            else:
-                _raise_invalid_input(s)
-        elif c in u'eE':
-            if state in (SMALL_NUM, SMALL_DECIMAL_DOT, SMALL_DECIMAL):
-                num = inum
-            elif state in (NUM, DECIMAL_DOT, DECIMAL):
-                pass
-            else:
-                _raise_invalid_input(s)
-            state = EXP_E
-        elif c in u'0123456789':
-            digit = (<int> c) - c'0'
+        digit = Py_UNICODE_TODECIMAL(c)
+        if digit != -1:
+            # normal digit found
             if state in (BEGIN_SPACE, BEGIN_SIGN, SMALL_NUM, SMALL_NUM_US):
                 inum = inum * 10 + digit
                 state = SMALL_NUM
@@ -959,6 +936,34 @@ cdef tuple _parse_fraction(AnyString s):
                 state = DENOM
             else:
                 _raise_invalid_input(s)
+            continue
+
+        # else: non-digit
+        if c == u'/':
+            if state == SMALL_NUM:
+                num = inum
+            elif state in (NUM, NUM_SPACE):
+                pass
+            else:
+                _raise_invalid_input(s)
+            state = DENOM_START
+        elif c == u'.':
+            if state in (BEGIN_SPACE, BEGIN_SIGN):
+                state = START_DECIMAL_DOT
+            elif state == SMALL_NUM:
+                state = SMALL_DECIMAL_DOT
+            elif state == NUM:
+                state = DECIMAL_DOT
+            else:
+                _raise_invalid_input(s)
+        elif c in u'eE':
+            if state in (SMALL_NUM, SMALL_DECIMAL_DOT, SMALL_DECIMAL):
+                num = inum
+            elif state in (NUM, DECIMAL_DOT, DECIMAL):
+                pass
+            else:
+                _raise_invalid_input(s)
+            state = EXP_E
         elif c in u'-+':
             if state == BEGIN_SPACE:
                 is_neg = c == u'-'

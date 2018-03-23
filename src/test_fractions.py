@@ -1,3 +1,4 @@
+# coding: utf8
 
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014 Python Software Foundation; All Rights Reserved
@@ -243,6 +244,9 @@ class FractionTest(unittest.TestCase):
         self.assertEqual((0, 1), _components(F(" .0e+0\t")))
         self.assertEqual((0, 1), _components(F("-0.000e0")))
         self.assertEqual((0, 1), _components(F("-.000e0")))
+        self.assertEqual((123456789, 10000), _components(F(u"۱۲۳۴۵.۶۷۸۹")))
+        self.assertEqual((123456789, 1000), _components(F(u"۱۲۳۴۵۶۷۸۹E-۳")))
+        self.assertEqual((123456789, 1), _components(F(u"۱۲۳۴۵۶۷۸۹")))
 
         # Errors in fractions but not quicktions:
         self.assertEqual((3, 2), _components(F("3 / 2")))
