@@ -15,9 +15,11 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
+
 install:
   - pip install -r requirements-appveyor.txt tox-travis
   - python setup.py build_ext --inplace --with-cython
+
 script:
   - tox
   - python setup.py sdist bdist_wheel
