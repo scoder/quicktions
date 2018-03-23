@@ -35,13 +35,25 @@ matrix:
   include:
     - os: osx
       osx_image: xcode6.4
-      python: 2
-      language: c
+      python: 2.6
       compiler: clang
-      cache: false
     - os: osx
       osx_image: xcode6.4
-      python: 3
-      language: c
+      python: 2.7
       compiler: clang
-      cache: false
+    - os: osx
+      osx_image: xcode6.4
+      python: 3.3
+      compiler: clang
+    - os: osx
+      osx_image: xcode6.4
+      python: 3.4
+      compiler: clang
+    - os: osx
+      osx_image: xcode6.4
+      python: 3.5
+      compiler: clang
+    - os: osx
+      osx_image: xcode6.4
+      python: 3.6
+      compiler: clang
