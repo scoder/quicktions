@@ -683,8 +683,9 @@ class FractionTest(unittest.TestCase):
         self.assertEqual(hash(fractions.Fraction(10, 1)), hash(F(10, 1)))
         self.assertEqual(hash(fractions.Fraction(-1, 1)), hash(F(-1, 1)))
         self.assertEqual(hash(fractions.Fraction(-1, 10)), hash(F(-1, 10)))
-        self.assertEqual(hash(fractions.Fraction(1.2)), hash(F(1.2)))
-        self.assertEqual(hash(fractions.Fraction(1.5)), hash(F(1.5)))
+        if sys.version_info >= (2, 7):
+            self.assertEqual(hash(fractions.Fraction(1.2)), hash(F(1.2)))
+            self.assertEqual(hash(fractions.Fraction(1.5)), hash(F(1.5)))
 
     def testApproximatePi(self):
         # Algorithm borrowed from
