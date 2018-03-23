@@ -43,7 +43,7 @@ init:
 install:
   - ECHO 'Installed SDKs:'
   - ps: 'ls "C:/Program Files/Microsoft SDKs/Windows"'
-  - pip install --upgrade pip
+  #- pip install --upgrade pip
   - pip install -r requirements-appveyor.txt
   - python setup.py build_ext --inplace --with-cython
 
