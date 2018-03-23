@@ -1,10 +1,12 @@
 ChangeLog
 =========
 
-1.6 (2018-??-??)
+1.6 (2018-03-23)
 ----------------
 
 * Speed up Fraction creation from a string value by 3-5x.
+
+* Built using Cython 0.28.1.
 
 
 1.5 (2017-10-22)
