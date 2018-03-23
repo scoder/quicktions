@@ -3,6 +3,10 @@
 #    - TWINE_USERNAME=scoder
 #    # Note: TWINE_PASSWORD is set in Travis settings
 
+os: linux
+dist: trusty
+sudo: false
+
 language: python
 python:
   - "2.6"
@@ -24,3 +28,18 @@ script:
   #     python -m pip install twine
   #     python -m twine upload wheelhouse/*.whl
   #   fi
+
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode6.4
+      python: 2
+      language: c
+      compiler: clang
+      cache: false
+    - os: osx
+      osx_image: xcode6.4
+      python: 3
+      language: c
+      compiler: clang
+      cache: false
