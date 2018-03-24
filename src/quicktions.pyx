@@ -1040,6 +1040,11 @@ cdef tuple _parse_fraction(AnyString s):
             _raise_invalid_input(s)
 
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT):
+        if not inum:
+            iexp = 0
+        if is_neg:
+            inum = -inum
+            is_neg = False
         num = inum
         denom = 1
     elif state in (NUM, NUM_SPACE, DECIMAL_DOT, DECIMAL, EXP, END_SPACE):
