@@ -897,131 +897,141 @@ cdef tuple _parse_fraction(AnyString s):
 
     cdef bint is_neg = False, exp_is_neg = False
     cdef int digit
+    cdef unsigned int udigit
     cdef long long inum = 0, idecimal = 0, idenom = 0, iexp = 0
     cdef object num = None, decimal, denom
 
     for i, c in enumerate(s):
-        digit = Py_UNICODE_TODECIMAL(c)
-        if digit != -1:
-            # normal digit found
-            if state in (BEGIN_SPACE, BEGIN_SIGN, SMALL_NUM, SMALL_NUM_US):
-                inum = inum * 10 + digit
-                state = SMALL_NUM
-                if inum > MAX_SMALL_NUMBER:
-                    num = inum
-                    state = NUM
-            elif state in (NUM, NUM_US):
-                num = num * 10 + digit
-                state = NUM
-            elif state in (START_DECIMAL_DOT, SMALL_DECIMAL_DOT, SMALL_DECIMAL, SMALL_DECIMAL_US):
-                decimal_len += 1
-                inum = inum * 10 + digit
-                state = SMALL_DECIMAL
-                if inum > MAX_SMALL_NUMBER:
-                    num = inum
-                    state = DECIMAL
-            elif state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
-                decimal_len += 1
-                num = num * 10 + digit
-                state = DECIMAL
-            elif state in (EXP_E, EXP_SIGN, EXP, EXP_US):
-                iexp = iexp * 10 + digit
-                if iexp > MAX_SMALL_NUMBER:
-                    _raise_parse_overflow(s)
-                state = EXP
-            elif state in (DENOM_START, DENOM_SIGN, SMALL_DENOM, SMALL_DENOM_US):
-                idenom = idenom * 10 + digit
-                state = SMALL_DENOM
-                if idenom > MAX_SMALL_NUMBER:
-                    denom = idenom
-                    state = DENOM
-            elif state in (DENOM, DENOM_US):
-                denom = denom * 10 + digit
-                state = DENOM
-            else:
-                _raise_invalid_input(s)
-            continue
-
-        # else: non-digit
-        if c == u'/':
-            if state == SMALL_NUM:
-                num = inum
-            elif state in (NUM, NUM_SPACE):
-                pass
-            else:
-                _raise_invalid_input(s)
-            state = DENOM_START
-        elif c == u'.':
-            if state in (BEGIN_SPACE, BEGIN_SIGN):
-                state = START_DECIMAL_DOT
-            elif state == SMALL_NUM:
-                state = SMALL_DECIMAL_DOT
-            elif state == NUM:
-                state = DECIMAL_DOT
-            else:
-                _raise_invalid_input(s)
-        elif c in u'eE':
-            if state in (SMALL_NUM, SMALL_DECIMAL_DOT, SMALL_DECIMAL):
-                num = inum
-            elif state in (NUM, DECIMAL_DOT, DECIMAL):
-                pass
-            else:
-                _raise_invalid_input(s)
-            state = EXP_E
-        elif c in u'-+':
-            if state == BEGIN_SPACE:
-                is_neg = c == u'-'
-                state = BEGIN_SIGN
-            elif state == EXP_E:
-                exp_is_neg = c == u'-'
-                state = EXP_SIGN
-            elif state == DENOM_START:
-                is_neg ^= (c == u'-')
-                state = DENOM_SIGN
-            else:
-                _raise_invalid_input(s)
-        elif c == u'_':
-            if state == SMALL_NUM:
-                state = SMALL_NUM_US
-            elif state == NUM:
-                state = NUM_US
-            elif state == SMALL_DECIMAL:
-                state = SMALL_DECIMAL_US
-            elif state == DECIMAL:
-                state = DECIMAL_US
-            elif state == EXP:
-                state = EXP_US
-            elif state == SMALL_DENOM:
-                state = SMALL_DENOM_US
-            elif state == DENOM:
-                state = DENOM_US
-            else:
-                _raise_invalid_input(s)
+        udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
+        if udigit <= 9:
+            digit = <int>udigit
         else:
-            if c.isspace():
-                if state in (BEGIN_SPACE, NUM_SPACE, END_SPACE, DENOM_START, DENOM_SPACE):
+            if c == u'/':
+                if state == SMALL_NUM:
+                    num = inum
+                elif state in (NUM, NUM_SPACE):
                     pass
-                elif state == SMALL_NUM:
-                    num = inum
-                    state = NUM_SPACE
-                elif state == NUM:
-                    state = NUM_SPACE
-                elif state in (SMALL_DECIMAL, SMALL_DECIMAL_DOT):
-                    num = inum
-                    state = END_SPACE
-                elif state in (DECIMAL, DECIMAL_DOT):
-                    state = END_SPACE
-                elif state == EXP:
-                    state = END_SPACE
-                elif state == SMALL_DENOM:
-                    denom = idenom
-                    state = DENOM_SPACE
-                elif state == DENOM:
-                    state = DENOM_SPACE
                 else:
                     _raise_invalid_input(s)
+                state = DENOM_START
+                continue
+            elif c == u'.':
+                if state in (BEGIN_SPACE, BEGIN_SIGN):
+                    state = START_DECIMAL_DOT
+                elif state == SMALL_NUM:
+                    state = SMALL_DECIMAL_DOT
+                elif state == NUM:
+                    state = DECIMAL_DOT
+                else:
+                    _raise_invalid_input(s)
+                continue
+            elif c in u'eE':
+                if state in (SMALL_NUM, SMALL_DECIMAL_DOT, SMALL_DECIMAL):
+                    num = inum
+                elif state in (NUM, DECIMAL_DOT, DECIMAL):
+                    pass
+                else:
+                    _raise_invalid_input(s)
+                state = EXP_E
+                continue
+            elif c in u'-+':
+                if state == BEGIN_SPACE:
+                    is_neg = c == u'-'
+                    state = BEGIN_SIGN
+                elif state == EXP_E:
+                    exp_is_neg = c == u'-'
+                    state = EXP_SIGN
+                elif state == DENOM_START:
+                    is_neg ^= (c == u'-')
+                    state = DENOM_SIGN
+                else:
+                    _raise_invalid_input(s)
+                continue
+            elif c == u'_':
+                if state == SMALL_NUM:
+                    state = SMALL_NUM_US
+                elif state == NUM:
+                    state = NUM_US
+                elif state == SMALL_DECIMAL:
+                    state = SMALL_DECIMAL_US
+                elif state == DECIMAL:
+                    state = DECIMAL_US
+                elif state == EXP:
+                    state = EXP_US
+                elif state == SMALL_DENOM:
+                    state = SMALL_DENOM_US
+                elif state == DENOM:
+                    state = DENOM_US
+                else:
+                    _raise_invalid_input(s)
+                continue
             else:
+                if c.isspace():
+                    if state in (BEGIN_SPACE, NUM_SPACE, END_SPACE, DENOM_START, DENOM_SPACE):
+                        pass
+                    elif state == SMALL_NUM:
+                        num = inum
+                        state = NUM_SPACE
+                    elif state == NUM:
+                        state = NUM_SPACE
+                    elif state in (SMALL_DECIMAL, SMALL_DECIMAL_DOT):
+                        num = inum
+                        state = END_SPACE
+                    elif state in (DECIMAL, DECIMAL_DOT):
+                        state = END_SPACE
+                    elif state == EXP:
+                        state = END_SPACE
+                    elif state == SMALL_DENOM:
+                        denom = idenom
+                        state = DENOM_SPACE
+                    elif state == DENOM:
+                        state = DENOM_SPACE
+                    else:
+                        _raise_invalid_input(s)
+                    continue
+
+            digit = Py_UNICODE_TODECIMAL(c)
+            if digit == -1:
                 _raise_invalid_input(s)
+                continue
+
+        # normal digit found
+        if state in (BEGIN_SPACE, BEGIN_SIGN, SMALL_NUM, SMALL_NUM_US):
+            inum = inum * 10 + digit
+            state = SMALL_NUM
+            if inum > MAX_SMALL_NUMBER:
+                num = inum
+                state = NUM
+        elif state in (NUM, NUM_US):
+            num = num * 10 + digit
+            state = NUM
+        elif state in (START_DECIMAL_DOT, SMALL_DECIMAL_DOT, SMALL_DECIMAL, SMALL_DECIMAL_US):
+            decimal_len += 1
+            inum = inum * 10 + digit
+            state = SMALL_DECIMAL
+            if inum > MAX_SMALL_NUMBER:
+                num = inum
+                state = DECIMAL
+        elif state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
+            decimal_len += 1
+            num = num * 10 + digit
+            state = DECIMAL
+        elif state in (EXP_E, EXP_SIGN, EXP, EXP_US):
+            iexp = iexp * 10 + digit
+            if iexp > MAX_SMALL_NUMBER:
+                _raise_parse_overflow(s)
+            state = EXP
+        elif state in (DENOM_START, DENOM_SIGN, SMALL_DENOM, SMALL_DENOM_US):
+            idenom = idenom * 10 + digit
+            state = SMALL_DENOM
+            if idenom > MAX_SMALL_NUMBER:
+                denom = idenom
+                state = DENOM
+        elif state in (DENOM, DENOM_US):
+            denom = denom * 10 + digit
+            state = DENOM
+        else:
+            _raise_invalid_input(s)
 
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT):
         num = inum
