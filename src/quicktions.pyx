@@ -69,10 +69,18 @@ cdef pow10(Py_ssize_t i):
 
 # Half-private GCD implementation.
 
-cdef unsigned long long _abs(long long x):
+ctypedef unsigned long long ullong
+
+cdef ullong _abs(long long x):
     if x == PY_LLONG_MIN:
-        return (<unsigned long long>PY_LLONG_MAX) + 1
+        return (<ullong>PY_LLONG_MAX) + 1
     return abs(x)
+
+
+cdef ullong _igcd(ullong a, ullong b):
+    while b:
+        a, b = b, a%b
+    return a
 
 
 cpdef _gcd(a, b):
@@ -81,7 +89,7 @@ cpdef _gcd(a, b):
     # Try doing all computation in C space.  If the numbers are too
     # large at the beginning, retry after each iteration until they
     # are small enough.
-    cdef unsigned long long au, bu
+    cdef ullong au
     cdef long long ai, bi
     while b:
         try:
@@ -91,11 +99,9 @@ cpdef _gcd(a, b):
         else:
             # switch to C space
             au = _abs(ai)
-            bu = _abs(bi)
-            while bu:
-                au, bu = bu, au%bu
+            au = _igcd(au, _abs(bi))
             # try PyInt downcast in Py2
-            if PY_MAJOR_VERSION < 3 and au <= <unsigned long long>LONG_MAX:
+            if PY_MAJOR_VERSION < 3 and au <= <ullong>LONG_MAX:
                 return <long>au
             return au
         a, b = b, a%b
@@ -1045,13 +1051,11 @@ cdef tuple _parse_fraction(AnyString s):
     else:
         _raise_invalid_input(s)
 
+    if decimal_len > MAX_SMALL_NUMBER:
+        _raise_parse_overflow(s)
     if exp_is_neg:
         iexp = -iexp
-        iexp -= decimal_len
-        if iexp > 0:  # C wrap-around ?
-            _raise_parse_overflow(s)
-    else:
-        iexp -= decimal_len
+    iexp -= decimal_len
 
     if is_neg:
         num = -num
