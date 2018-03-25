@@ -1111,7 +1111,6 @@ cdef tuple _parse_fraction(AnyString s):
     is_normalised = False
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
         # Special case for 'small' numbers: normalise directly in C space.
-        assert not iexp
         if inum and decimal_len:
             denom = pow10(decimal_len)
             igcd = _ibgcd[ullong](inum, denom)
