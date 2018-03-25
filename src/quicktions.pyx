@@ -29,7 +29,7 @@ from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from cpython.version cimport PY_MAJOR_VERSION
 
 cdef extern from *:
-    cdef long LONG_MAX
+    cdef long LONG_MAX, INT_MAX
     cdef long long PY_LLONG_MIN, PY_LLONG_MAX
     cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
@@ -71,6 +71,14 @@ cdef pow10(Py_ssize_t i):
 # Half-private GCD implementation.
 
 ctypedef unsigned long long ullong
+ctypedef unsigned long ulong
+ctypedef unsigned int uint
+
+ctypedef fused cunumber:
+    ullong
+    ulong
+    uint
+
 
 cdef ullong _abs(long long x):
     if x == PY_LLONG_MIN:
@@ -78,18 +86,18 @@ cdef ullong _abs(long long x):
     return abs(x)
 
 
-cdef ullong _igcd(ullong a, ullong b):
+cdef cunumber _igcd(cunumber a, cunumber b):
     """Euclid's GCD algorithm"""
     while b:
         a, b = b, a%b
     return a
 
 
-cdef ullong _ibgcd(ullong a, ullong b):
+cdef cunumber _ibgcd(cunumber a, cunumber b):
     """Binary GCD algorithm.
     See https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     """
-    cdef unsigned int shift = 0
+    cdef uint shift = 0
     if not a:
         return b
     if not b:
@@ -117,12 +125,25 @@ cdef ullong _ibgcd(ullong a, ullong b):
     return a << shift
 
 
+cdef _py_gcd(ullong a, ullong b):
+    if a <= <ullong>INT_MAX and b <= <ullong>INT_MAX:
+        return <int> _igcd[uint](a, b)
+    elif a <= <ullong>LONG_MAX and b <= <ullong>LONG_MAX:
+        return <long> _igcd[ulong](a, b)
+    elif b:
+        a = _igcd[ullong](a, b)
+    # try PyInt downcast in Py2
+    if PY_MAJOR_VERSION < 3 and a <= <ullong>LONG_MAX:
+        return <long>a
+    return a
+
+
 cpdef _gcd(a, b):
     """Calculate the Greatest Common Divisor of a and b as a non-negative number.
     """
     # Try doing the computation in C space.  If the numbers are too
     # large at the beginning, do object calculations until they are small enough.
-    cdef ullong au
+    cdef ullong au, bu
     cdef long long ai, bi
 
     # Optimistically try to switch to C space.
@@ -132,11 +153,8 @@ cpdef _gcd(a, b):
         pass
     else:
         au = _abs(ai)
-        au = _ibgcd(au, _abs(bi)) if bi else au
-        # try PyInt downcast in Py2
-        if PY_MAJOR_VERSION < 3 and au <= <ullong>LONG_MAX:
-            return <long>au
-        return au
+        bu = _abs(bi)
+        return _py_gcd(au, bu)
 
     # Do object calculation until we reach the C space limit.
     a = abs(a)
@@ -147,12 +165,7 @@ cpdef _gcd(a, b):
         a, b = b, a%b
     if not b:
         return a
-
-    # Continue in C space.
-    au = _ibgcd(a, b)
-    if PY_MAJOR_VERSION < 3 and au <= <ullong>LONG_MAX:
-        return <long>au
-    return au
+    return _py_gcd(a, b)
 
 
 # Constants related to the hash implementation;  hash(x) is based
@@ -232,16 +245,14 @@ cdef class Fraction:
 
             elif isinstance(numerator, unicode):
                 numerator, denominator, is_normalised = _parse_fraction(<unicode>numerator)
-                if is_normalised and denominator != 0:
-                    self._numerator, self._denominator = numerator, denominator
-                    return
+                if is_normalised:
+                    _normalize = False
                 # fall through to normalisation below
 
             elif PY_MAJOR_VERSION < 3 and isinstance(numerator, bytes):
                 numerator, denominator, is_normalised = _parse_fraction(<bytes>numerator)
-                if is_normalised and denominator != 0:
-                    self._numerator, self._denominator = numerator, denominator
-                    return
+                if is_normalised:
+                    _normalize = False
                 # fall through to normalisation below
 
             elif isinstance(numerator, float):
@@ -1103,7 +1114,7 @@ cdef tuple _parse_fraction(AnyString s):
         assert not iexp
         if inum and decimal_len:
             denom = pow10(decimal_len)
-            igcd = _ibgcd(inum, denom)
+            igcd = _ibgcd[ullong](inum, denom)
             if igcd > 1:
                 inum //= igcd
                 denom //= igcd
