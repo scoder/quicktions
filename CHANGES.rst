@@ -1,14 +1,6 @@
 ChangeLog
 =========
 
-1.7 (2018-03-25)
-----------------
-
-* Speed up Fraction normalisation by switching from Euclid to Binary GCD.
-
-* Built using Cython 0.28.1.
-
-
 1.6 (2018-03-23)
 ----------------
 
