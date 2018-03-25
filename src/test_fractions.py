@@ -730,6 +730,21 @@ class FractionTest(unittest.TestCase):
         r = F(13, 7)
         self.assertRaises(AttributeError, setattr, r, 'a', 10)
 
+    def test_pi_digits(self):
+        pi = (
+            "3.141592653589793238462643383279502884197169399375105820974944592307816406286"
+            "208998628034825342117067982148086513282306647093844609550582231725359408128481"
+            "117450284102701938521105559644622948954930381964428810975665933446128475648233"
+            "786783165271201909145648566923460348610454326648213393607260249141273724587006"
+        )
+        for i in range(2, len(pi)):
+            s = pi[:i]
+            ff = fractions.Fraction(s)
+            qf = F(s)
+            self.assertEqual(ff, qf)
+            self.assertEqual(ff.numerator, qf.numerator)
+            self.assertEqual(ff.denominator, qf.denominator)
+
 
 def test_main():
     suite = unittest.TestSuite()
