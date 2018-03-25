@@ -43,7 +43,7 @@ The total price, t, is converted to a string, s.
 
 import os
 from struct import unpack
-from time import clock as time
+from time import time
 
 
 def rel_path(*path):
