@@ -34,6 +34,7 @@ cdef extern from *:
     cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
 cdef object Rational, Decimal, math, numbers, operator, sys
+cdef object PY_MAX_LONG_LONG = PY_LLONG_MAX
 
 from numbers import Rational
 from decimal import Decimal
@@ -78,34 +79,80 @@ cdef ullong _abs(long long x):
 
 
 cdef ullong _igcd(ullong a, ullong b):
+    """Euclid's GCD algorithm"""
     while b:
         a, b = b, a%b
     return a
 
 
+cdef ullong _ibgcd(ullong a, ullong b):
+    """Binary GCD algorithm.
+    See https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+    """
+    cdef unsigned int shift = 0
+    if not a:
+        return b
+    if not b:
+        return a
+
+    # Find common pow2 factors.
+    while not (a|b) & 1:
+        a >>= 1
+        b >>= 1
+        shift += 1
+
+    # Exclude factor 2.
+    while not a & 1:
+        a >>= 1
+
+    # a is always odd from here on.
+    while b:
+        while not b & 1:
+            b >>= 1
+        if a > b:
+            a, b = b, a
+        b -= a
+
+    # Restore original pow2 factor.
+    return a << shift
+
+
 cpdef _gcd(a, b):
     """Calculate the Greatest Common Divisor of a and b as a non-negative number.
     """
-    # Try doing all computation in C space.  If the numbers are too
-    # large at the beginning, retry after each iteration until they
-    # are small enough.
+    # Try doing the computation in C space.  If the numbers are too
+    # large at the beginning, do object calculations until they are small enough.
     cdef ullong au
     cdef long long ai, bi
-    while b:
-        try:
-            ai, bi = a, b
-        except OverflowError:
-            pass
-        else:
-            # switch to C space
-            au = _abs(ai)
-            au = _igcd(au, _abs(bi))
-            # try PyInt downcast in Py2
-            if PY_MAJOR_VERSION < 3 and au <= <ullong>LONG_MAX:
-                return <long>au
-            return au
+
+    # Optimistically try to switch to C space.
+    try:
+        ai, bi = a, b
+    except OverflowError:
+        pass
+    else:
+        au = _abs(ai)
+        au = _ibgcd(au, _abs(bi)) if bi else au
+        # try PyInt downcast in Py2
+        if PY_MAJOR_VERSION < 3 and au <= <ullong>LONG_MAX:
+            return <long>au
+        return au
+
+    # Do object calculation until we reach the C space limit.
+    a = abs(a)
+    b = abs(b)
+    while b > PY_MAX_LONG_LONG:
         a, b = b, a%b
-    return abs(a)
+    while b and a > PY_MAX_LONG_LONG:
+        a, b = b, a%b
+    if not b:
+        return a
+
+    # Continue in C space.
+    au = _ibgcd(a, b)
+    if PY_MAJOR_VERSION < 3 and au <= <ullong>LONG_MAX:
+        return <long>au
+    return au
 
 
 # Constants related to the hash implementation;  hash(x) is based
@@ -184,11 +231,17 @@ cdef class Fraction:
                 return
 
             elif isinstance(numerator, unicode):
-                numerator, denominator = _parse_fraction(<unicode>numerator)
+                numerator, denominator, is_normalised = _parse_fraction(<unicode>numerator)
+                if is_normalised and denominator != 0:
+                    self._numerator, self._denominator = numerator, denominator
+                    return
                 # fall through to normalisation below
 
             elif PY_MAJOR_VERSION < 3 and isinstance(numerator, bytes):
-                numerator, denominator = _parse_fraction(<bytes>numerator)
+                numerator, denominator, is_normalised = _parse_fraction(<bytes>numerator)
+                if is_normalised and denominator != 0:
+                    self._numerator, self._denominator = numerator, denominator
+                    return
                 # fall through to normalisation below
 
             elif isinstance(numerator, float):
@@ -865,9 +918,9 @@ cdef enum ParserState:
 
     # 1) floating point syntax
     START_DECIMAL_DOT    # '.'       ->  (SMALL_DECIMAL)
-    SMALL_DECIMAL_DOT    # '.'       ->  (SMALL_DECIMAL, EXP_E, END_SPACE)
+    SMALL_DECIMAL_DOT    # '.'       ->  (SMALL_DECIMAL, EXP_E, SMALL_END_SPACE)
     DECIMAL_DOT          # '.'       ->  (DECIMAL, EXP_E, END_SPACE)
-    SMALL_DECIMAL        # [0-9]+    ->  (SMALL_DECIMAL, SMALL_DECIMAL_US, DECIMAL, EXP_E, END_SPACE)
+    SMALL_DECIMAL        # [0-9]+    ->  (SMALL_DECIMAL, SMALL_DECIMAL_US, DECIMAL, EXP_E, SMALL_END_SPACE)
     SMALL_DECIMAL_US     # '_'       ->  (SMALL_DECIMAL, DECIMAL)
     DECIMAL              # [0-9]+    ->  (DECIMAL, DECIMAL_US, EXP_E, END_SPACE)
     DECIMAL_US           # '_'       ->  (DECIMAL)
@@ -876,6 +929,7 @@ cdef enum ParserState:
     EXP                  # [0-9]+    ->  (EXP_US, END_SPACE)
     EXP_US               # '_'       ->  (EXP)
     END_SPACE            # '\s'+
+    SMALL_END_SPACE      # '\s'+
 
     # 2) "NOM / DENOM" syntax
     DENOM_START          # '/'       ->  (DENOM_SIGN, SMALL_DENOM)
@@ -896,6 +950,9 @@ cdef _raise_parse_overflow(s):
 
 
 cdef tuple _parse_fraction(AnyString s):
+    """
+    Parse a string into a number tuple: (nominator, denominator, is_normalised)
+    """
     cdef size_t i
     cdef Py_ssize_t decimal_len = 0
     cdef Py_UCS4 c
@@ -905,6 +962,7 @@ cdef tuple _parse_fraction(AnyString s):
     cdef int digit
     cdef unsigned int udigit
     cdef long long inum = 0, idecimal = 0, idenom = 0, iexp = 0
+    cdef ullong igcd
     cdef object num = None, decimal, denom
 
     for i, c in enumerate(s):
@@ -973,7 +1031,7 @@ cdef tuple _parse_fraction(AnyString s):
                 continue
             else:
                 if c.isspace():
-                    if state in (BEGIN_SPACE, NUM_SPACE, END_SPACE, DENOM_START, DENOM_SPACE):
+                    if state in (BEGIN_SPACE, NUM_SPACE, END_SPACE, SMALL_END_SPACE, DENOM_START, DENOM_SPACE):
                         pass
                     elif state == SMALL_NUM:
                         num = inum
@@ -982,7 +1040,7 @@ cdef tuple _parse_fraction(AnyString s):
                         state = NUM_SPACE
                     elif state in (SMALL_DECIMAL, SMALL_DECIMAL_DOT):
                         num = inum
-                        state = END_SPACE
+                        state = SMALL_END_SPACE
                     elif state in (DECIMAL, DECIMAL_DOT):
                         state = END_SPACE
                     elif state == EXP:
@@ -1039,15 +1097,24 @@ cdef tuple _parse_fraction(AnyString s):
         else:
             _raise_invalid_input(s)
 
-    if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT):
-        if not inum:
-            iexp = 0
+    is_normalised = False
+    if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
+        # Special case for 'small' numbers: normalise directly in C space.
+        assert not iexp
+        if inum and decimal_len:
+            denom = pow10(decimal_len)
+            igcd = _ibgcd(inum, denom)
+            if igcd > 1:
+                inum //= igcd
+                denom //= igcd
+        else:
+            denom = 1
         if is_neg:
             inum = -inum
-            is_neg = False
-        num = inum
-        denom = 1
+        return inum, denom, True
+
     elif state in (NUM, NUM_SPACE, DECIMAL_DOT, DECIMAL, EXP, END_SPACE):
+        is_normalised = True
         denom = 1
     elif state == SMALL_DENOM:
         denom = idenom
@@ -1067,6 +1134,7 @@ cdef tuple _parse_fraction(AnyString s):
     if iexp > 0:
         num *= pow10(iexp)
     elif iexp < 0:
+        is_normalised = False
         denom = pow10(-iexp)
 
-    return num, denom
+    return num, denom, is_normalised
