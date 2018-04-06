@@ -11,7 +11,7 @@ from distutils.core import setup, Extension
 
 
 ext_modules = [
-    Extension("quicktions", ["src/quicktions.pyx"]),
+    Extension("quicktions", ["quicktions/quicktions.pyx"]),
 ]
 
 try:
@@ -43,7 +43,7 @@ if cythonize is None:
         ext_module.sources[:] = [m.replace('.pyx', '.c') for m in ext_module.sources]
 
 
-with open('src/quicktions.pyx') as f:
+with open('quicktions/quicktions.pyx') as f:
     version = re.search("__version__\s*=\s*'([^']+)'", f.read(2048)).group(1)
 
 with open('README.rst') as f:
@@ -65,7 +65,9 @@ setup(
     #bugtrack_url="https://github.com/scoder/quicktions/issues",
 
     ext_modules=ext_modules,
-    package_dir={'': 'src'},
+    packages=['quicktions'],
+    package_data={'quicktions':['*.pxd']},
+    include_package_data=True,
 
     classifiers=[
         "Development Status :: 6 - Mature",

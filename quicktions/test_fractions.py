@@ -775,7 +775,7 @@ class CImportTest(unittest.TestCase):
         import pyximport
         self.py_importer, self.pyx_importer = pyximport.install()
 
-        from quicktions_importtest import get_fraction
+        from quicktions.quicktions_importtest import get_fraction
 
         self.assertEqual(get_fraction(), F(1,2))
 
