@@ -10,6 +10,7 @@
 
 from __future__ import division
 
+import os
 from decimal import Decimal
 import math
 import numbers
@@ -745,11 +746,47 @@ class FractionTest(unittest.TestCase):
             self.assertEqual(ff.numerator, qf.numerator)
             self.assertEqual(ff.denominator, qf.denominator)
 
+class CImportTest(unittest.TestCase):
+
+    def setUp(self):
+        self.build_test_module()
+
+    def tearDown(self):
+        self.remove_test_module()
+
+    def build_test_module(self):
+        self.module_code = '\n'.join([
+            'from quicktions cimport Fraction',
+            'def get_fraction():',
+            '    return Fraction(1, 2)',
+        ])
+        base_path = os.path.abspath(os.path.dirname(__file__))
+        self.module_name = 'quicktions_importtest'
+        self.module_filename = os.path.join(base_path, '.'.join([self.module_name, 'pyx']))
+        with open(self.module_filename, 'w') as f:
+            f.write(self.module_code)
+
+    def remove_test_module(self):
+        if os.path.exists(self.module_filename):
+            os.remove(self.module_filename)
+
+    def test_cimport(self):
+        self.build_test_module()
+        import pyximport
+        self.py_importer, self.pyx_importer = pyximport.install()
+
+        from quicktions_importtest import get_fraction
+
+        self.assertEqual(get_fraction(), F(1,2))
+
+        pyximport.uninstall(self.py_importer, self.pyx_importer)
+
 
 def test_main():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(GcdTest))
     suite.addTest(unittest.makeSuite(FractionTest))
+    suite.addTest(unittest.makeSuite(CImportTest))
     import doctest
     suite.addTest(doctest.DocTestSuite('quicktions'))
     return suite
