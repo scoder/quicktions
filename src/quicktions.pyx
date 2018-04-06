@@ -220,9 +220,6 @@ cdef class Fraction:
     Fraction(147, 100)
 
     """
-    cdef _numerator
-    cdef _denominator
-    cdef Py_hash_t _hash
 
     def __cinit__(self, numerator=0, denominator=None, *, bint _normalize=True):
         cdef Fraction value
@@ -364,7 +361,7 @@ cdef class Fraction:
         else:
             return cls(digits, pow10(-exp))
 
-    def limit_denominator(self, max_denominator=1000000):
+    cpdef limit_denominator(self, max_denominator=1000000):
         """Closest Fraction to self with denominator at most max_denominator.
 
         >>> Fraction('3.141592653589793').limit_denominator(10)
@@ -592,7 +589,7 @@ cdef class Fraction:
         "Real numbers have no imaginary component."
         return 0
 
-    def conjugate(self):
+    cpdef conjugate(self):
         """Conjugate is a no-op for Reals."""
         return +self
 
