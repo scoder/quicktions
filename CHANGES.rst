@@ -4,6 +4,8 @@ ChangeLog
 1.7 (2018-10-16)
 ----------------
 
+* Faster normalisation and fraction string parsing.
+
 * Add support for Python 3.7.
 
 * Built using Cython 0.29.
