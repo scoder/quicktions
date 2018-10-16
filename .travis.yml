@@ -8,13 +8,6 @@ dist: trusty
 sudo: false
 
 language: python
-python:
-  - "2.6"
-  - "2.7"
-  - "3.3"
-  - "3.4"
-  - "3.5"
-  - "3.6"
 
 install:
   - pip install -r requirements-appveyor.txt tox-travis
@@ -31,29 +24,30 @@ script:
   #     python -m twine upload wheelhouse/*.whl
   #   fi
 
-#matrix:
-#  include:
-#    - os: osx
-#      osx_image: xcode6.4
-#      python: 2.6
-#      compiler: clang
-#    - os: osx
-#      osx_image: xcode6.4
-#      python: 2.7
-#      compiler: clang
-#    - os: osx
-#      osx_image: xcode6.4
-#      python: 3.3
-#      compiler: clang
-#    - os: osx
-#      osx_image: xcode6.4
-#      python: 3.4
-#      compiler: clang
-#    - os: osx
-#      osx_image: xcode6.4
-#      python: 3.5
-#      compiler: clang
-#    - os: osx
-#      osx_image: xcode6.4
-#      python: 3.6
-#      compiler: clang
+matrix:
+  include:
+    - python: 2.7
+    - python: 3.7
+      dist: xenial    # Required for Python 3.7
+      sudo: required  # travis-ci/travis-ci#9069
+    - python: 2.6
+    - python: 3.4
+    - python: 3.5
+    - python: 3.6
+    - python: 3.8-dev
+      dist: xenial    # Required for Python 3.7
+      sudo: required  # travis-ci/travis-ci#9069
+    - os: osx
+      osx_image: xcode6.4
+      env: PY=2
+      python: 2
+      language: c
+      compiler: clang
+      cache: false
+    - os: osx
+      osx_image: xcode6.4
+      env: PY=3
+      python: 3
+      language: c
+      compiler: clang
+      cache: false
