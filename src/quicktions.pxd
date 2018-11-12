@@ -1,3 +1,5 @@
+# cython: language_level=3str
+## cython: profile=True
 
 cpdef _gcd(a, b)
 

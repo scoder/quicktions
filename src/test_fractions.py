@@ -756,6 +756,7 @@ class CImportTest(unittest.TestCase):
 
     def build_test_module(self):
         self.module_code = '\n'.join([
+            '# cython: language_level=3str',
             'from quicktions cimport Fraction',
             'def get_fraction():',
             '    return Fraction(1, 2)',
