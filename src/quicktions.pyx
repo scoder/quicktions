@@ -1,3 +1,4 @@
+# cython: language_level=3str
 ## cython: profile=True
 
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
@@ -21,7 +22,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['Fraction']
 
-__version__ = '1.6'
+__version__ = '1.7'
 
 cimport cython
 from cpython.unicode cimport Py_UNICODE_TODECIMAL
@@ -1108,7 +1109,6 @@ cdef tuple _parse_fraction(AnyString s):
     is_normalised = False
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
         # Special case for 'small' numbers: normalise directly in C space.
-        assert not iexp
         if inum and decimal_len:
             denom = pow10(decimal_len)
             igcd = _ibgcd[ullong](inum, denom)

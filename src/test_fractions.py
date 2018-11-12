@@ -792,8 +792,12 @@ def test_main():
     return suite
 
 
-if __name__ == '__main__':
+def main():
     suite = test_main()
     runner = unittest.TextTestRunner(sys.stdout, verbosity=2)
     result = runner.run(suite)
     sys.exit(not result.wasSuccessful())
+
+
+if __name__ == '__main__':
+    main()
