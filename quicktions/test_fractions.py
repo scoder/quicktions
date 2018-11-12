@@ -760,20 +760,22 @@ class CImportTest(unittest.TestCase):
             'def get_fraction():',
             '    return Fraction(1, 2)',
         ])
-        base_path = os.path.abspath(os.path.dirname(__file__))
+        self.base_path = os.path.abspath(os.path.dirname(__file__))
         self.module_name = 'quicktions_importtest'
-        self.module_filename = os.path.join(base_path, '.'.join([self.module_name, 'pyx']))
+        self.module_filename = os.path.join(self.base_path, '.'.join([self.module_name, 'pyx']))
         with open(self.module_filename, 'w') as f:
             f.write(self.module_code)
 
     def remove_test_module(self):
-        if os.path.exists(self.module_filename):
-            os.remove(self.module_filename)
+        for fn in os.listdir(self.base_path):
+            if not fn.startswith(self.module_name):
+                continue
+            os.remove(os.path.join(self.base_path, fn))
 
     def test_cimport(self):
         self.build_test_module()
         import pyximport
-        self.py_importer, self.pyx_importer = pyximport.install()
+        self.py_importer, self.pyx_importer = pyximport.install(inplace=True, language_level=3)
 
         from quicktions.quicktions_importtest import get_fraction
 
