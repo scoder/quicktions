@@ -11,6 +11,7 @@
 from __future__ import division
 
 import os
+import sys
 from decimal import Decimal
 import math
 import numbers
@@ -25,6 +26,7 @@ import quicktions
 F = quicktions.Fraction
 gcd = quicktions._gcd
 
+PY2 = sys.version_info.major == 2
 
 class DummyFloat(object):
     """Dummy float class for testing comparisons with Fractions"""
@@ -777,7 +779,10 @@ class CImportTest(unittest.TestCase):
         import pyximport
         self.py_importer, self.pyx_importer = pyximport.install(inplace=True, language_level=3)
 
-        from quicktions.quicktions_importtest import get_fraction
+        if PY2:
+            from quicktions_importtest import get_fraction
+        else:
+            from quicktions.quicktions_importtest import get_fraction
 
         self.assertEqual(get_fraction(), F(1,2))
 
