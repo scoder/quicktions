@@ -26,7 +26,7 @@ import quicktions
 F = quicktions.Fraction
 gcd = quicktions._gcd
 
-PY2 = sys.version_info.major == 2
+PY2 = sys.version_info[0] == 2
 
 class DummyFloat(object):
     """Dummy float class for testing comparisons with Fractions"""
