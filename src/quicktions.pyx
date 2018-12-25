@@ -442,23 +442,23 @@ cdef class Fraction:
 
     def __add__(a, b):
         """a + b"""
-        return _math_op(a, b, _add, 'add')
+        return _math_op(a, b, _add, _math_op_add)
 
     def __sub__(a, b):
         """a - b"""
-        return _math_op(a, b, _sub, 'sub')
+        return _math_op(a, b, _sub, _math_op_sub)
 
     def __mul__(a, b):
         """a * b"""
-        return _math_op(a, b, _mul, 'mul')
+        return _math_op(a, b, _mul, _math_op_mul)
 
     def __div__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, 'div')
+        return _math_op(a, b, _div, _math_op_div)
 
     def __truediv__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, 'truediv')
+        return _math_op(a, b, _div, _math_op_truediv)
 
     def __floordiv__(a, b):
         """a // b"""
@@ -473,8 +473,7 @@ cdef class Fraction:
 
     def __mod__(a, b):
         """a % b"""
-        div = a // b
-        return a - b * div
+        return _math_op(a, b, _mod, _math_op_mod)
 
     def __divmod__(a, b):
         """divmod(self, other): The pair (self // other, self % other).
@@ -482,8 +481,7 @@ cdef class Fraction:
         Sometimes this can be computed faster than the pair of
         operations.
         """
-        div = a // b
-        return (div, a - b * div)
+        return _math_op(a, b, _divmod, _math_op_divmod)
 
     def __pow__(a, b, x):
         """a ** b
@@ -873,18 +871,45 @@ cdef _div(an, ad, bn, bd):
     """a / b"""
     return Fraction(an * bd, ad * bn)
 
+cdef _divmod(an, ad, bn, bd):
+    div_n, div_d, mod_n, mod_d = __divmod(an, ad, bn, bd)
+    return Fraction(div_n, div_d), Fraction(mod_n, mod_d)
+
+cdef _mod(an, ad, bn, bd):
+    _, _, mod_n, mod_d = __divmod(an, ad, bn, bd)
+    return Fraction(mod_n, mod_d)
+
+cdef tuple __divmod(an, ad, bn, bd):
+    """(a / b, a % b)"""
+    # div = a // b
+    div_n, div_d = an * bd, ad * bn
+    div = div_n // div_d
+    # mod = a - b * div == an/ad - bn * div / bd == (an*bd - ad*bn * div) / (ad*bd)
+    mod_n, mod_d = div_n - div_d * div, ad*bd
+    return div_n, div_d, mod_n, mod_d
+
+
+cdef:
+    _math_op_add = operator.add
+    _math_op_sub = operator.sub
+    _math_op_mul = operator.mul
+    _math_op_div = getattr(operator, 'div', operator.truediv)  # Py2/3
+    _math_op_truediv = operator.truediv
+    _math_op_mod = operator.mod
+    _math_op_divmod = divmod
+
 
 ctypedef object (*math_func)(an, ad, bn, bd)
 
 
-cdef _math_op(a, b, math_func monomorphic_operator, str pyoperator_name):
+cdef _math_op(a, b, math_func monomorphic_operator, pyoperator):
     if isinstance(a, Fraction):
-        return forward(a, b, monomorphic_operator, pyoperator_name)
+        return forward(a, b, monomorphic_operator, pyoperator)
     else:
-        return reverse(a, b, monomorphic_operator, pyoperator_name)
+        return reverse(a, b, monomorphic_operator, pyoperator)
 
 
-cdef forward(a, b, math_func monomorphic_operator, str pyoperator_name):
+cdef forward(a, b, math_func monomorphic_operator, pyoperator):
     an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
     if type(b) is Fraction:
         return monomorphic_operator(an, ad, (<Fraction>b)._numerator, (<Fraction>b)._denominator)
@@ -893,23 +918,23 @@ cdef forward(a, b, math_func monomorphic_operator, str pyoperator_name):
     elif isinstance(b, (Fraction, Rational)):
         return monomorphic_operator(an, ad, b.numerator, b.denominator)
     elif isinstance(b, float):
-        return getattr(operator, pyoperator_name)(_as_float(an, ad), b)
+        return pyoperator(_as_float(an, ad), b)
     elif isinstance(b, complex):
-        return getattr(operator, pyoperator_name)(complex(a), b)
+        return pyoperator(complex(a), b)
     else:
         return NotImplemented
 
 
-cdef reverse(a, b, math_func monomorphic_operator, str pyoperator_name):
+cdef reverse(a, b, math_func monomorphic_operator, pyoperator):
     bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
     if isinstance(a, (int, long)):
         return monomorphic_operator(a, 1, bn, bd)
     elif isinstance(a, Rational):
         return monomorphic_operator(a.numerator, a.denominator, bn, bd)
     elif isinstance(a, numbers.Real):
-        return getattr(operator, pyoperator_name)(float(a), _as_float(bn, bd))
+        return pyoperator(float(a), _as_float(bn, bd))
     elif isinstance(a, numbers.Complex):
-        return getattr(operator, pyoperator_name)(complex(a), complex(b))
+        return pyoperator(complex(a), complex(b))
     else:
         return NotImplemented
 
