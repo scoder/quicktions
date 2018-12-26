@@ -70,6 +70,30 @@ cdef pow10(Py_ssize_t i):
 
 # Half-private GCD implementation.
 
+cdef extern from *:
+    """
+    #if PY_VERSION_HEX < 0x030500F0 || !CYTHON_COMPILING_IN_CPYTHON
+        #define _PyLong_GCD(a, b) (NULL)
+    #endif
+    """
+    # CPython 3.5+ has a fast PyLong GCD implementation that we can use.
+    int PY_VERSION_HEX
+    int IS_CPYTHON "CYTHON_COMPILING_IN_CPYTHON"
+    _PyLong_GCD(a, b)
+
+
+cpdef _gcd(a, b):
+    """Calculate the Greatest Common Divisor of a and b as a non-negative number.
+    """
+    if PY_VERSION_HEX < 0x030500F0 or not IS_CPYTHON:
+        return _gcd_fallback(a, b)
+    if not isinstance(a, int):
+        a = int(a)
+    if not isinstance(b, int):
+        b = int(b)
+    return _PyLong_GCD(a, b)
+
+
 ctypedef unsigned long long ullong
 ctypedef unsigned long ulong
 ctypedef unsigned int uint
@@ -138,8 +162,8 @@ cdef _py_gcd(ullong a, ullong b):
     return a
 
 
-cpdef _gcd(a, b):
-    """Calculate the Greatest Common Divisor of a and b as a non-negative number.
+cdef _gcd_fallback(a, b):
+    """Fallback GCD implementation if _PyLong_GCD() is not available.
     """
     # Try doing the computation in C space.  If the numbers are too
     # large at the beginning, do object calculations until they are small enough.
