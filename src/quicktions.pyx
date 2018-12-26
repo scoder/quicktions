@@ -872,11 +872,11 @@ cdef _div(an, ad, bn, bd):
     return Fraction(an * bd, ad * bn)
 
 cdef _divmod(an, ad, bn, bd):
-    div_n, div_d, mod_n, mod_d = __divmod(an, ad, bn, bd)
-    return Fraction(div_n, div_d), Fraction(mod_n, mod_d)
+    div_n, mod_n, mod_d = __divmod(an, ad, bn, bd)
+    return Fraction(div_n), Fraction(mod_n, mod_d)
 
 cdef _mod(an, ad, bn, bd):
-    _, _, mod_n, mod_d = __divmod(an, ad, bn, bd)
+    _, mod_n, mod_d = __divmod(an, ad, bn, bd)
     return Fraction(mod_n, mod_d)
 
 cdef tuple __divmod(an, ad, bn, bd):
@@ -886,7 +886,7 @@ cdef tuple __divmod(an, ad, bn, bd):
     div = div_n // div_d
     # mod = a - b * div == an/ad - bn * div / bd == (an*bd - ad*bn * div) / (ad*bd)
     mod_n, mod_d = div_n - div_d * div, ad*bd
-    return div_n, div_d, mod_n, mod_d
+    return div, mod_n, mod_d
 
 
 cdef:
