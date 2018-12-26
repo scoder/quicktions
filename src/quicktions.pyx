@@ -4,7 +4,7 @@
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014 Python Software Foundation; All Rights Reserved
 #
-# Based on the "fractions" module in CPython 3.4/5.
+# Based on the "fractions" module in CPython 3.4+.
 # https://hg.python.org/cpython/file/b18288f24501/Lib/fractions.py
 #
 # Adapted for efficient Cython compilation by Stefan Behnel.
@@ -22,7 +22,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['Fraction']
 
-__version__ = '1.7'
+__version__ = '1.8'
 
 cimport cython
 from cpython.unicode cimport Py_UNICODE_TODECIMAL
@@ -34,13 +34,12 @@ cdef extern from *:
     cdef long long PY_LLONG_MIN, PY_LLONG_MAX
     cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
-cdef object Rational, Decimal, math, numbers, operator, sys
+cdef object Rational, Integral, Real, Complex, Decimal, math, operator, sys
 cdef object PY_MAX_LONG_LONG = PY_LLONG_MAX
 
-from numbers import Rational
+from numbers import Rational, Integral, Real, Complex
 from decimal import Decimal
 import math
-import numbers
 import operator
 import sys
 
@@ -335,7 +334,7 @@ cdef class Fraction:
         else:
             return cls(*ratio)
 
-        if isinstance(f, numbers.Integral):
+        if isinstance(f, Integral):
             return cls(f)
         elif not isinstance(f, float):
             raise TypeError(f"{cls.__name__}.from_float() only takes floats, not {f!r} ({type(f).__name__})")
@@ -347,7 +346,7 @@ cdef class Fraction:
     def from_decimal(cls, dec):
         """Converts a finite Decimal instance to a rational number, exactly."""
         cdef Py_ssize_t exp
-        if isinstance(dec, numbers.Integral):
+        if isinstance(dec, Integral):
             dec = Decimal(int(dec))
         elif not isinstance(dec, Decimal):
             raise TypeError(
@@ -674,7 +673,7 @@ cdef class Fraction:
         if isinstance(b, Rational):
             return (a._numerator == b.numerator and
                     a._denominator == b.denominator)
-        if isinstance(b, numbers.Complex) and b.imag == 0:
+        if isinstance(b, Complex) and b.imag == 0:
             b = b.real
         if isinstance(b, float):
             if math.isnan(b) or math.isinf(b):
@@ -931,9 +930,9 @@ cdef reverse(a, b, math_func monomorphic_operator, pyoperator):
         return monomorphic_operator(a, 1, bn, bd)
     elif isinstance(a, Rational):
         return monomorphic_operator(a.numerator, a.denominator, bn, bd)
-    elif isinstance(a, numbers.Real):
+    elif isinstance(a, Real):
         return pyoperator(float(a), _as_float(bn, bd))
-    elif isinstance(a, numbers.Complex):
+    elif isinstance(a, Complex):
         return pyoperator(complex(a), complex(b))
     else:
         return NotImplemented
