@@ -7,6 +7,8 @@ ChangeLog
 * ``//`` (floordiv) now follows the expected rounding behaviour when used with
   floats (by converting to float first), and is much faster for integer operations.
 
+* Fix return type of divmod(), where the first item should be an integer.
+
 
 1.8 (2018-12-26)
 ----------------

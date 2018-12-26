@@ -869,7 +869,7 @@ cdef _floordiv(an, ad, bn, bd):
 
 cdef _divmod(an, ad, bn, bd):
     div, mod_n, mod_d = __divmod(an, ad, bn, bd)
-    return Fraction(div), Fraction(mod_n, mod_d)
+    return div, Fraction(mod_n, mod_d)
 
 cdef _mod(an, ad, bn, bd):
     _, mod_n, mod_d = __divmod(an, ad, bn, bd)
