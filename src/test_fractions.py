@@ -168,7 +168,7 @@ class FractionTest(unittest.TestCase):
 
     def assertTypedTupleEquals(self, expected, actual):
         """Asserts that both the types and values in the tuples are the same."""
-        self.assertIsInstance(actual, tuple)
+        self.assertEqual(tuple, type(actual))
         self.assertEqual(list(map(type, expected)), list(map(type, actual)))
         self.assertEqual(expected, actual)
 
