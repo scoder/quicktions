@@ -872,8 +872,8 @@ cdef _div(an, ad, bn, bd):
     return Fraction(an * bd, ad * bn)
 
 cdef _divmod(an, ad, bn, bd):
-    div_n, mod_n, mod_d = __divmod(an, ad, bn, bd)
-    return Fraction(div_n), Fraction(mod_n, mod_d)
+    div, mod_n, mod_d = __divmod(an, ad, bn, bd)
+    return Fraction(div), Fraction(mod_n, mod_d)
 
 cdef _mod(an, ad, bn, bd):
     _, mod_n, mod_d = __divmod(an, ad, bn, bd)
