@@ -868,21 +868,11 @@ cdef _floordiv(an, ad, bn, bd):
     return (an * bd) // (bn * ad)
 
 cdef _divmod(an, ad, bn, bd):
-    div, mod_n, mod_d = __divmod(an, ad, bn, bd)
-    return div, Fraction(mod_n, mod_d)
+    div, n_mod = divmod(an * bd, ad * bn)
+    return div, Fraction(n_mod, ad * bd)
 
 cdef _mod(an, ad, bn, bd):
-    _, mod_n, mod_d = __divmod(an, ad, bn, bd)
-    return Fraction(mod_n, mod_d)
-
-cdef tuple __divmod(an, ad, bn, bd):
-    """(a // b, a % b)"""
-    # div = a // b
-    div_n, div_d = an * bd, ad * bn
-    div = div_n // div_d
-    # mod = a - b * div == an/ad - bn * div / bd == (an*bd - ad*bn * div) / (ad*bd)
-    mod_n, mod_d = div_n - div_d * div, ad*bd
-    return div, mod_n, mod_d
+    return Fraction((an * bd) % (bn * ad), ad * bd)
 
 
 cdef:
