@@ -166,6 +166,12 @@ class FractionTest(unittest.TestCase):
         self.assertEqual(type(expected), type(actual))
         self.assertEqual(expected, actual)
 
+    def assertTypedTupleEquals(self, expected, actual):
+        """Asserts that both the types and values in the tuples are the same."""
+        self.assertIsInstance(actual, tuple)
+        self.assertEqual(list(map(type, expected)), list(map(type, actual)))
+        self.assertEqual(expected, actual)
+
     def assertRaisesMessage(self, exc_type, message,
                             callable, *args, **kwargs):
         """Asserts that callable(*args, **kwargs) raises exc_type(message)."""
@@ -502,7 +508,14 @@ class FractionTest(unittest.TestCase):
         self.assertTypedEquals(float('inf'), F(-1, 10) % float('inf'))
         self.assertTypedEquals(-0.1, F(-1, 10) % float('-inf'))
 
-        # No need for divmod since we don't override it.
+        self.assertTypedTupleEquals((F(0), F(1, 10)), divmod(F(1, 10), 1))
+        self.assertTypedTupleEquals(divmod(0.1, 1.0), divmod(F(1, 10), 1.0))
+        self.assertTypedTupleEquals((F(10, 1), F(0)), divmod(1, F(1, 10)))
+        self.assertTypedTupleEquals(divmod(1.0, 0.1), divmod(1.0, F(1, 10)))
+        self.assertTypedTupleEquals(divmod(0.1, float('inf')), divmod(F(1, 10), float('inf')))
+        self.assertTypedTupleEquals(divmod(0.1, float('-inf')), divmod(F(1, 10), float('-inf')))
+        self.assertTypedTupleEquals(divmod(-0.1, float('inf')), divmod(F(-1, 10), float('inf')))
+        self.assertTypedTupleEquals(divmod(-0.1, float('-inf')), divmod(F(-1, 10), float('-inf')))
 
         # ** has more interesting conversion rules.
         self.assertTypedEquals(F(100, 1), F(1, 10) ** -2)
