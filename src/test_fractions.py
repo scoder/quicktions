@@ -467,7 +467,7 @@ class FractionTest(unittest.TestCase):
             F(-2**100, 3) % F(5, 2**100)
         )
         self.assertTypedTupleEquals(
-            (9999999999999999,
+            (9999999999999999 << 90 >> 90,  # Py2 requires long ...
              F(10101010100808080808080808101010101010000000000000000,
                1010101010101010101010101011111111101010101010101010101010101)),
             divmod(F(10**35+1, 10**27+1), F(10**27+1, 10**35-1))
@@ -477,7 +477,7 @@ class FractionTest(unittest.TestCase):
             F(-2**100, 3) // F(5, 2**100)
         )
         self.assertTypedEquals(
-            1,
+            1 << 90 >> 90,  # Py2 requires long ...
             F(5, 2**100) // F(3, 2**100)
         )
         self.assertTypedEquals(
