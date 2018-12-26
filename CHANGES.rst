@@ -1,13 +1,17 @@
 ChangeLog
 =========
 
-1.9 (201?-??-??)
+1.9 (2018-12-26)
 ----------------
+
+* Substantially faster normalisation (and therefore instantiation) in Py3.5+.
 
 * ``//`` (floordiv) now follows the expected rounding behaviour when used with
   floats (by converting to float first), and is much faster for integer operations.
 
 * Fix return type of divmod(), where the first item should be an integer.
+
+* Further speed up mod and divmod operations.
 
 
 1.8 (2018-12-26)
