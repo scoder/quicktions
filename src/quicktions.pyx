@@ -880,7 +880,7 @@ cdef _mod(an, ad, bn, bd):
     return Fraction(mod_n, mod_d)
 
 cdef tuple __divmod(an, ad, bn, bd):
-    """(a / b, a % b)"""
+    """(a // b, a % b)"""
     # div = a // b
     div_n, div_d = an * bd, ad * bn
     div = div_n // div_d
