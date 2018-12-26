@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+1.9 (201?-??-??)
+----------------
+
+* ``//`` (floordiv) now follows the expected rounding behaviour when used with
+  floats (by converting to float first), and is much faster for integer operations.
+
+
 1.8 (2018-12-26)
 ----------------
 

@@ -461,14 +461,7 @@ cdef class Fraction:
 
     def __floordiv__(a, b):
         """a // b"""
-        div = a / b
-        if PY_MAJOR_VERSION < 3 and isinstance(div, (Fraction, Rational)):
-            # trunc(math.floor(div)) doesn't work if the rational is
-            # more precise than a float because the intermediate
-            # rounding may cross an integer boundary.
-            return div.numerator // div.denominator
-        else:
-            return math.floor(div)
+        return _math_op(a, b, _floordiv, _math_op_floordiv)
 
     def __mod__(a, b):
         """a % b"""
@@ -870,6 +863,10 @@ cdef _div(an, ad, bn, bd):
     """a / b"""
     return Fraction(an * bd, ad * bn)
 
+cdef _floordiv(an, ad, bn, bd):
+    """a // b -> int"""
+    return (an * bd) // (bn * ad)
+
 cdef _divmod(an, ad, bn, bd):
     div, mod_n, mod_d = __divmod(an, ad, bn, bd)
     return Fraction(div), Fraction(mod_n, mod_d)
@@ -894,6 +891,7 @@ cdef:
     _math_op_mul = operator.mul
     _math_op_div = getattr(operator, 'div', operator.truediv)  # Py2/3
     _math_op_truediv = operator.truediv
+    _math_op_floordiv = operator.floordiv
     _math_op_mod = operator.mod
     _math_op_divmod = divmod
 
