@@ -623,13 +623,15 @@ cdef class Fraction:
             if self._denominator == 1:
                 # Get integers right.
                 result = hash(self._numerator)
-            # Expensive check, but definitely correct.
-            if self == float(self):
-                result = hash(float(self))
             else:
-                # Use tuple's hash to avoid a high collision rate on
-                # simple fractions.
-                result = hash((self._numerator, self._denominator))
+                # Expensive check, but definitely correct.
+                float_val = _as_float(self._numerator, self._denominator)
+                if self == float_val:
+                    result = hash(float_val)
+                else:
+                    # Use tuple's hash to avoid a high collision rate on
+                    # simple fractions.
+                    result = hash((self._numerator, self._denominator))
             self._hash = result
             return result
 
