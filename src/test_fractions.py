@@ -22,6 +22,7 @@ from copy import copy, deepcopy
 from pickle import dumps, loads
 
 import quicktions
+assert os.path.dirname(quicktions.__file__) != os.path.dirname(__file__)
 F = quicktions.Fraction
 gcd = quicktions._gcd
 

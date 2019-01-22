@@ -23,6 +23,7 @@ test: local
 
 clean:
 	rm -fr build src/*.so
+	rm -r src/quicktions.egg-info
 
 realclean: clean
 	rm -fr src/*.c src/*.html
