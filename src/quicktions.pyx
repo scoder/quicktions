@@ -70,16 +70,6 @@ cdef pow10(Py_ssize_t i):
 
 # Half-private GCD implementation.
 
-cdef extern from *:
-    """
-    #if PY_VERSION_HEX < 0x030500F0 || !CYTHON_COMPILING_IN_CPYTHON
-        #define _PyLong_GCD(a, b) (NULL)
-    #endif
-    """
-    # CPython 3.5+ has a fast PyLong GCD implementation that we can use.
-    int PY_VERSION_HEX
-    int IS_CPYTHON "CYTHON_COMPILING_IN_CPYTHON"
-    _PyLong_GCD(a, b)
 
 
 cpdef _gcd(a, b):
@@ -94,14 +84,6 @@ cpdef _gcd(a, b):
     return _PyLong_GCD(a, b)
 
 
-ctypedef unsigned long long ullong
-ctypedef unsigned long ulong
-ctypedef unsigned int uint
-
-ctypedef fused cunumber:
-    ullong
-    ulong
-    uint
 
 
 cdef ullong _abs(long long x):
