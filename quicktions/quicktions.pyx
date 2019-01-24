@@ -4,7 +4,7 @@
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014 Python Software Foundation; All Rights Reserved
 #
-# Based on the "fractions" module in CPython 3.4/5.
+# Based on the "fractions" module in CPython 3.4+.
 # https://hg.python.org/cpython/file/b18288f24501/Lib/fractions.py
 #
 # Adapted for efficient Cython compilation by Stefan Behnel.
@@ -22,7 +22,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['Fraction']
 
-__version__ = '1.7'
+__version__ = '1.9'
 
 cimport cython
 from cpython.unicode cimport Py_UNICODE_TODECIMAL
@@ -34,13 +34,12 @@ cdef extern from *:
     cdef long long PY_LLONG_MIN, PY_LLONG_MAX
     cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
-cdef object Rational, Decimal, math, numbers, operator, sys
+cdef object Rational, Integral, Real, Complex, Decimal, math, operator, sys
 cdef object PY_MAX_LONG_LONG = PY_LLONG_MAX
 
-from numbers import Rational
+from numbers import Rational, Integral, Real, Complex
 from decimal import Decimal
 import math
-import numbers
 import operator
 import sys
 
@@ -71,14 +70,20 @@ cdef pow10(Py_ssize_t i):
 
 # Half-private GCD implementation.
 
-ctypedef unsigned long long ullong
-ctypedef unsigned long ulong
-ctypedef unsigned int uint
 
-ctypedef fused cunumber:
-    ullong
-    ulong
-    uint
+
+cpdef _gcd(a, b):
+    """Calculate the Greatest Common Divisor of a and b as a non-negative number.
+    """
+    if PY_VERSION_HEX < 0x030500F0 or not IS_CPYTHON:
+        return _gcd_fallback(a, b)
+    if not isinstance(a, int):
+        a = int(a)
+    if not isinstance(b, int):
+        b = int(b)
+    return _PyLong_GCD(a, b)
+
+
 
 
 cdef ullong _abs(long long x):
@@ -139,8 +144,8 @@ cdef _py_gcd(ullong a, ullong b):
     return a
 
 
-cpdef _gcd(a, b):
-    """Calculate the Greatest Common Divisor of a and b as a non-negative number.
+cdef _gcd_fallback(a, b):
+    """Fallback GCD implementation if _PyLong_GCD() is not available.
     """
     # Try doing the computation in C space.  If the numbers are too
     # large at the beginning, do object calculations until they are small enough.
@@ -332,7 +337,7 @@ cdef class Fraction:
         else:
             return cls(*ratio)
 
-        if isinstance(f, numbers.Integral):
+        if isinstance(f, Integral):
             return cls(f)
         elif not isinstance(f, float):
             raise TypeError(f"{cls.__name__}.from_float() only takes floats, not {f!r} ({type(f).__name__})")
@@ -344,7 +349,7 @@ cdef class Fraction:
     def from_decimal(cls, dec):
         """Converts a finite Decimal instance to a rational number, exactly."""
         cdef Py_ssize_t exp
-        if isinstance(dec, numbers.Integral):
+        if isinstance(dec, Integral):
             dec = Decimal(int(dec))
         elif not isinstance(dec, Decimal):
             raise TypeError(
@@ -439,39 +444,31 @@ cdef class Fraction:
 
     def __add__(a, b):
         """a + b"""
-        return _math_op(a, b, _add, 'add')
+        return _math_op(a, b, _add, _math_op_add)
 
     def __sub__(a, b):
         """a - b"""
-        return _math_op(a, b, _sub, 'sub')
+        return _math_op(a, b, _sub, _math_op_sub)
 
     def __mul__(a, b):
         """a * b"""
-        return _math_op(a, b, _mul, 'mul')
+        return _math_op(a, b, _mul, _math_op_mul)
 
     def __div__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, 'div')
+        return _math_op(a, b, _div, _math_op_div)
 
     def __truediv__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, 'truediv')
+        return _math_op(a, b, _div, _math_op_truediv)
 
     def __floordiv__(a, b):
         """a // b"""
-        div = a / b
-        if PY_MAJOR_VERSION < 3 and isinstance(div, (Fraction, Rational)):
-            # trunc(math.floor(div)) doesn't work if the rational is
-            # more precise than a float because the intermediate
-            # rounding may cross an integer boundary.
-            return div.numerator // div.denominator
-        else:
-            return math.floor(div)
+        return _math_op(a, b, _floordiv, _math_op_floordiv)
 
     def __mod__(a, b):
         """a % b"""
-        div = a // b
-        return a - b * div
+        return _math_op(a, b, _mod, _math_op_mod)
 
     def __divmod__(a, b):
         """divmod(self, other): The pair (self // other, self % other).
@@ -479,8 +476,7 @@ cdef class Fraction:
         Sometimes this can be computed faster than the pair of
         operations.
         """
-        div = a // b
-        return (div, a - b * div)
+        return _math_op(a, b, _divmod, _math_op_divmod)
 
     def __pow__(a, b, x):
         """a ** b
@@ -606,13 +602,15 @@ cdef class Fraction:
             if self._denominator == 1:
                 # Get integers right.
                 result = hash(self._numerator)
-            # Expensive check, but definitely correct.
-            if self == float(self):
-                result = hash(float(self))
             else:
-                # Use tuple's hash to avoid a high collision rate on
-                # simple fractions.
-                result = hash((self._numerator, self._denominator))
+                # Expensive check, but definitely correct.
+                float_val = _as_float(self._numerator, self._denominator)
+                if self == float_val:
+                    result = hash(float_val)
+                else:
+                    # Use tuple's hash to avoid a high collision rate on
+                    # simple fractions.
+                    result = hash((self._numerator, self._denominator))
             self._hash = result
             return result
 
@@ -673,7 +671,7 @@ cdef class Fraction:
         if isinstance(b, Rational):
             return (a._numerator == b.numerator and
                     a._denominator == b.denominator)
-        if isinstance(b, numbers.Complex) and b.imag == 0:
+        if isinstance(b, Complex) and b.imag == 0:
             b = b.real
         if isinstance(b, float):
             if math.isnan(b) or math.isinf(b):
@@ -769,10 +767,7 @@ cdef _pow(an, ad, bn, bd):
     else:
         # A fractional power will generally produce an
         # irrational number.
-        if PY_MAJOR_VERSION >= 3:
-            return (an / ad) ** (bn / bd)
-        else:
-            return float(an / ad) ** (bn / bd)
+        return (an / ad) ** (bn / bd)
 
 
 cdef _as_float(numerator, denominator):
@@ -870,18 +865,40 @@ cdef _div(an, ad, bn, bd):
     """a / b"""
     return Fraction(an * bd, ad * bn)
 
+cdef _floordiv(an, ad, bn, bd):
+    """a // b -> int"""
+    return (an * bd) // (bn * ad)
+
+cdef _divmod(an, ad, bn, bd):
+    div, n_mod = divmod(an * bd, ad * bn)
+    return div, Fraction(n_mod, ad * bd)
+
+cdef _mod(an, ad, bn, bd):
+    return Fraction((an * bd) % (bn * ad), ad * bd)
+
+
+cdef:
+    _math_op_add = operator.add
+    _math_op_sub = operator.sub
+    _math_op_mul = operator.mul
+    _math_op_div = getattr(operator, 'div', operator.truediv)  # Py2/3
+    _math_op_truediv = operator.truediv
+    _math_op_floordiv = operator.floordiv
+    _math_op_mod = operator.mod
+    _math_op_divmod = divmod
+
 
 ctypedef object (*math_func)(an, ad, bn, bd)
 
 
-cdef _math_op(a, b, math_func monomorphic_operator, str pyoperator_name):
+cdef _math_op(a, b, math_func monomorphic_operator, pyoperator):
     if isinstance(a, Fraction):
-        return forward(a, b, monomorphic_operator, pyoperator_name)
+        return forward(a, b, monomorphic_operator, pyoperator)
     else:
-        return reverse(a, b, monomorphic_operator, pyoperator_name)
+        return reverse(a, b, monomorphic_operator, pyoperator)
 
 
-cdef forward(a, b, math_func monomorphic_operator, str pyoperator_name):
+cdef forward(a, b, math_func monomorphic_operator, pyoperator):
     an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
     if type(b) is Fraction:
         return monomorphic_operator(an, ad, (<Fraction>b)._numerator, (<Fraction>b)._denominator)
@@ -890,23 +907,23 @@ cdef forward(a, b, math_func monomorphic_operator, str pyoperator_name):
     elif isinstance(b, (Fraction, Rational)):
         return monomorphic_operator(an, ad, b.numerator, b.denominator)
     elif isinstance(b, float):
-        return getattr(operator, pyoperator_name)(_as_float(an, ad), b)
+        return pyoperator(_as_float(an, ad), b)
     elif isinstance(b, complex):
-        return getattr(operator, pyoperator_name)(complex(a), b)
+        return pyoperator(complex(a), b)
     else:
         return NotImplemented
 
 
-cdef reverse(a, b, math_func monomorphic_operator, str pyoperator_name):
+cdef reverse(a, b, math_func monomorphic_operator, pyoperator):
     bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
     if isinstance(a, (int, long)):
         return monomorphic_operator(a, 1, bn, bd)
     elif isinstance(a, Rational):
         return monomorphic_operator(a.numerator, a.denominator, bn, bd)
-    elif isinstance(a, numbers.Real):
-        return getattr(operator, pyoperator_name)(float(a), _as_float(bn, bd))
-    elif isinstance(a, numbers.Complex):
-        return getattr(operator, pyoperator_name)(complex(a), complex(b))
+    elif isinstance(a, Real):
+        return pyoperator(float(a), _as_float(bn, bd))
+    elif isinstance(a, Complex):
+        return pyoperator(complex(a), complex(b))
     else:
         return NotImplemented
 

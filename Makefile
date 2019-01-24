@@ -24,6 +24,7 @@ test: local
 
 clean:
 	rm -fr build $(PKG_ROOT)/*.so
+	rm -r $(PKG_ROOT)/quicktions.egg-info
 
 realclean: clean
 	rm -fr $(PKG_ROOT)/*.c $(PKG_ROOT)/*.html
