@@ -9,8 +9,8 @@ __pycache__
 
 /build
 /dist
-quicktions/*.c
-quicktions/*.html
+src/quicktions/*.c
+src/quicktions/*.html
 MANIFEST
 
 .tox

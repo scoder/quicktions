@@ -1,5 +1,5 @@
 PYTHON?=python
-PKG_ROOT?=quicktions
+PKG_ROOT?=src/quicktions
 VERSION?=$(shell sed -ne "s|^__version__\s*=\s*'\([^']*\)'.*|\1|p" $(PKG_ROOT)/quicktions.pyx)
 PACKAGE=quicktions
 WITH_CYTHON := $(shell python -c 'from Cython.Build import cythonize' 2>/dev/null && echo "--with-cython")
@@ -24,7 +24,7 @@ test: local
 
 clean:
 	rm -fr build $(PKG_ROOT)/*.so
-	rm -r $(PKG_ROOT)/quicktions.egg-info
+	rm -r src/quicktions.egg-info
 
 realclean: clean
 	rm -fr $(PKG_ROOT)/*.c $(PKG_ROOT)/*.html

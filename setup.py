@@ -19,6 +19,8 @@ except ImportError:
     cython_available = False
     cython = None
 
+PKG_ROOT = os.path.join('src', 'quicktions')
+
 try:
     sys.argv.remove("--with-profile")
 except ValueError:
@@ -36,13 +38,13 @@ else:
         compiler_directives = {}
         if enable_profiling:
             compiler_directives['profile'] = True
-        ext_modules = cythonize('quicktions/*.pyx', compiler_directives=compiler_directives)
+        ext_modules = cythonize(os.path.join(PKG_ROOT, '*.pyx'), compiler_directives=compiler_directives)
 if ext_modules is None:
     ext_modules = [
-        Extension("quicktions", [os.path.join("quicktions", "quicktions.c")]),
+        Extension("quicktions.quicktions", [os.path.join(PKG_ROOT, "quicktions.c")]),
     ]
 
-with open('quicktions/quicktions.pyx') as f:
+with open(os.path.join(PKG_ROOT, 'quicktions.pyx')) as f:
     version = re.search("__version__\s*=\s*'([^']+)'", f.read(2048)).group(1)
 
 with open('README.rst') as f:
@@ -64,6 +66,7 @@ setup(
     #bugtrack_url="https://github.com/scoder/quicktions/issues",
 
     ext_modules=ext_modules,
+    package_dir={'':'src'},
     packages=['quicktions'],
     package_data={'quicktions':['*.pxd']},
     include_package_data=True,
