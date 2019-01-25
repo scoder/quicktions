@@ -20,7 +20,7 @@ dist/$(PACKAGE)-$(VERSION).tar.gz:
 	$(PYTHON) setup.py sdist $(WITH_CYTHON)
 
 test: local
-	PYTHONPATH=$(PKG_ROOT) $(PYTHON) $(PKG_ROOT)/test_fractions.py
+	PYTHONPATH=$(PKG_ROOT) $(PYTHON) test_fractions.py
 
 clean:
 	rm -fr build $(PKG_ROOT)/*.so
