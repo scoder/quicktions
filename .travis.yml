@@ -14,6 +14,7 @@ install:
   - python setup.py build_ext --inplace --with-cython
   - python setup.py sdist bdist_wheel
   - make clean
+  # Install quicktions from the wheel built above (into site-packages)
   - pip install --no-index --find-links=dist/ quicktions
 script:
   - tox
