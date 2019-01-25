@@ -11,7 +11,6 @@
 from __future__ import division
 
 import os
-import sys
 from decimal import Decimal
 import math
 import numbers
@@ -23,11 +22,9 @@ from copy import copy, deepcopy
 from pickle import dumps, loads
 
 import quicktions
-assert os.path.dirname(quicktions.__file__) != os.path.dirname(__file__)
 F = quicktions.Fraction
 gcd = quicktions._gcd
 
-PY2 = sys.version_info[0] == 2
 
 class DummyFloat(object):
     """Dummy float class for testing comparisons with Fractions"""
