@@ -10,6 +10,7 @@
 
 from __future__ import division
 
+import os
 from decimal import Decimal
 import math
 import numbers

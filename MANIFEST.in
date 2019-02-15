@@ -1,4 +1,5 @@
 include MANIFEST.in LICENSE *.rst
 include setup.py *.yml tox.ini *.cmd *.txt
+include test_fractions.py
 recursive-include src *.py *.pyx *.pxd *.c *.html
 recursive-include benchmark *.py telco-bench.b

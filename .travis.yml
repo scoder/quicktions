@@ -12,10 +12,12 @@ language: python
 install:
   - pip install -r requirements-appveyor.txt tox-travis
   - python setup.py build_ext --inplace --with-cython
-
+  - python setup.py sdist bdist_wheel
+  - make clean
+  # Install quicktions from the wheel built above (into site-packages)
+  - pip install --no-index --find-links=dist/ quicktions
 script:
   - tox
-  - python setup.py sdist bdist_wheel
   # the following is stolen from https://github.com/joerick/pyinstrument_cext/blob/master/.travis.yml
   # uncomment to push wheels automatically to pypi for tagged releases only (requires TWINE_PASSWORD to be set)
   # - |

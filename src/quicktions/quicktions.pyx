@@ -70,16 +70,6 @@ cdef pow10(Py_ssize_t i):
 
 # Half-private GCD implementation.
 
-cdef extern from *:
-    """
-    #if PY_VERSION_HEX < 0x030500F0 || !CYTHON_COMPILING_IN_CPYTHON
-        #define _PyLong_GCD(a, b) (NULL)
-    #endif
-    """
-    # CPython 3.5+ has a fast PyLong GCD implementation that we can use.
-    int PY_VERSION_HEX
-    int IS_CPYTHON "CYTHON_COMPILING_IN_CPYTHON"
-    _PyLong_GCD(a, b)
 
 
 cpdef _gcd(a, b):
@@ -94,14 +84,6 @@ cpdef _gcd(a, b):
     return _PyLong_GCD(a, b)
 
 
-ctypedef unsigned long long ullong
-ctypedef unsigned long ulong
-ctypedef unsigned int uint
-
-ctypedef fused cunumber:
-    ullong
-    ulong
-    uint
 
 
 cdef ullong _abs(long long x):
@@ -244,9 +226,6 @@ cdef class Fraction:
     Fraction(147, 100)
 
     """
-    cdef _numerator
-    cdef _denominator
-    cdef Py_hash_t _hash
 
     def __cinit__(self, numerator=0, denominator=None, *, bint _normalize=True):
         cdef Fraction value
@@ -388,7 +367,7 @@ cdef class Fraction:
         else:
             return cls(digits, pow10(-exp))
 
-    def limit_denominator(self, max_denominator=1000000):
+    cpdef limit_denominator(self, max_denominator=1000000):
         """Closest Fraction to self with denominator at most max_denominator.
 
         >>> Fraction('3.141592653589793').limit_denominator(10)
@@ -607,7 +586,7 @@ cdef class Fraction:
         "Real numbers have no imaginary component."
         return 0
 
-    def conjugate(self):
+    cpdef conjugate(self):
         """Conjugate is a no-op for Reals."""
         return +self
 

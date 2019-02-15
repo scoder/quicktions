@@ -1,5 +1,6 @@
 PYTHON?=python
-VERSION?=$(shell sed -ne "s|^__version__\s*=\s*'\([^']*\)'.*|\1|p" src/quicktions.pyx)
+PKG_ROOT?=src/quicktions
+VERSION?=$(shell sed -ne "s|^__version__\s*=\s*'\([^']*\)'.*|\1|p" $(PKG_ROOT)/quicktions.pyx)
 PACKAGE=quicktions
 WITH_CYTHON := $(shell python -c 'from Cython.Build import cythonize' 2>/dev/null && echo "--with-cython")
 
@@ -19,13 +20,14 @@ dist/$(PACKAGE)-$(VERSION).tar.gz:
 	$(PYTHON) setup.py sdist $(WITH_CYTHON)
 
 test: local
-	PYTHONPATH=src $(PYTHON) src/test_fractions.py
+	PYTHONPATH=$(PKG_ROOT) $(PYTHON) test_fractions.py
 
 clean:
-	rm -fr build src/*.so
+	rm -fr build $(PKG_ROOT)/*.so
+	rm -r src/quicktions.egg-info
 
 realclean: clean
-	rm -fr src/*.c src/*.html
+	rm -fr $(PKG_ROOT)/*.c $(PKG_ROOT)/*.html
 
 wheel_manylinux: wheel_manylinux64 wheel_manylinux32
 

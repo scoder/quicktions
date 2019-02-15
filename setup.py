@@ -1,4 +1,5 @@
 
+import os
 import sys
 import re
 
@@ -9,10 +10,16 @@ except ImportError:
 
 from distutils.core import setup, Extension
 
+try:
+    from Cython.Build import cythonize
+    import Cython.Compiler.Options as cython_options
+    cython_options.annotate = True
+    cython_available = True
+except ImportError:
+    cython_available = False
+    cython = None
 
-ext_modules = [
-    Extension("quicktions", ["src/quicktions.pyx"]),
-]
+PKG_ROOT = os.path.join('src', 'quicktions')
 
 try:
     sys.argv.remove("--with-profile")
@@ -21,29 +28,23 @@ except ValueError:
 else:
     enable_profiling = True
 
+ext_modules = None
 try:
     sys.argv.remove("--with-cython")
 except ValueError:
     cythonize = None
 else:
-    try:
-        from Cython.Build import cythonize
-        import Cython.Compiler.Options as cython_options
-        cython_options.annotate = True
-    except ImportError:
-        cythonize = None
-    else:
+    if cython_available:
         compiler_directives = {}
         if enable_profiling:
             compiler_directives['profile'] = True
-        ext_modules = cythonize(ext_modules, compiler_directives=compiler_directives)
+        ext_modules = cythonize(os.path.join(PKG_ROOT, '*.pyx'), compiler_directives=compiler_directives)
+if ext_modules is None:
+    ext_modules = [
+        Extension("quicktions.quicktions", [os.path.join(PKG_ROOT, "quicktions.c")]),
+    ]
 
-if cythonize is None:
-    for ext_module in ext_modules:
-        ext_module.sources[:] = [m.replace('.pyx', '.c') for m in ext_module.sources]
-
-
-with open('src/quicktions.pyx') as f:
+with open(os.path.join(PKG_ROOT, 'quicktions.pyx')) as f:
     version = re.search("__version__\s*=\s*'([^']+)'", f.read(2048)).group(1)
 
 with open('README.rst') as f:
@@ -65,7 +66,10 @@ setup(
     #bugtrack_url="https://github.com/scoder/quicktions/issues",
 
     ext_modules=ext_modules,
-    package_dir={'': 'src'},
+    package_dir={'':'src'},
+    packages=['quicktions'],
+    package_data={'quicktions':['*.pxd']},
+    include_package_data=True,
 
     classifiers=[
         "Development Status :: 6 - Mature",
