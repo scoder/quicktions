@@ -1,5 +1,8 @@
 import os
+import glob
 import unittest
+
+from Cython.Build import Cythonize
 
 import quicktions
 F = quicktions.Fraction
@@ -8,41 +11,37 @@ gcd = quicktions._gcd
 class CImportTest(unittest.TestCase):
 
     def setUp(self):
-        self.build_test_module()
+        self.module_files = []
 
     def tearDown(self):
-        self.remove_test_module()
+        for fn in self.module_files:
+            if os.path.exists(fn):
+                os.remove(fn)
 
     def build_test_module(self):
-        self.module_code = '\n'.join([
+        module_code = '\n'.join([
             '# cython: language_level=3str',
             'from quicktions cimport Fraction',
             'def get_fraction():',
             '    return Fraction(1, 2)',
         ])
-        self.base_path = os.path.abspath(os.path.dirname(__file__))
-        self.module_name = 'quicktions_importtest'
-        self.module_filename = os.path.join(self.base_path, '.'.join([self.module_name, 'pyx']))
-        with open(self.module_filename, 'w') as f:
-            f.write(self.module_code)
+        base_path = os.path.abspath(os.path.dirname(__file__))
+        module_name = 'quicktions_importtest'
+        module_filename = os.path.join(base_path, '.'.join([module_name, 'pyx']))
+        with open(module_filename, 'w') as f:
+            f.write(module_code)
 
-    def remove_test_module(self):
-        for fn in os.listdir(self.base_path):
-            if not fn.startswith(self.module_name):
-                continue
-            os.remove(os.path.join(self.base_path, fn))
+        Cythonize.main(['-i', module_filename])
+
+        for fn in glob.glob(os.path.join(base_path, '.'.join([module_name, '*']))):
+            self.module_files.append(os.path.abspath(fn))
 
     def test_cimport(self):
         self.build_test_module()
-        import pyximport
-        self.py_importer, self.pyx_importer = pyximport.install(inplace=True, language_level=3)
 
         from quicktions_importtest import get_fraction
 
         self.assertEqual(get_fraction(), F(1,2))
-
-        pyximport.uninstall(self.py_importer, self.pyx_importer)
-
 
 
 def test_main():
