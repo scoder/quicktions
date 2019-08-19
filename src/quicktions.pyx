@@ -641,14 +641,40 @@ cdef class Fraction:
         # outlined in the documentation.  (See library docs, 'Built-in
         # Types').
 
-        # dinv is the inverse of self._denominator modulo the prime
-        # _PyHASH_MODULUS, or 0 if self._denominator is divisible by
-        # _PyHASH_MODULUS.
-        dinv = pow(self._denominator, _PyHASH_MODULUS - 2, _PyHASH_MODULUS)
-        if not dinv:
-            result = _PyHASH_INF
+        if PY_VERSION_HEX < 0x030800B1:
+            # dinv is the inverse of self._denominator modulo the prime
+            # _PyHASH_MODULUS, or 0 if self._denominator is divisible by
+            # _PyHASH_MODULUS.
+            dinv = pow(self._denominator, _PyHASH_MODULUS - 2, _PyHASH_MODULUS)
+            if not dinv:
+                result = _PyHASH_INF
+            else:
+                result = abs(self._numerator) * dinv % _PyHASH_MODULUS
         else:
-            result = abs(self._numerator) * dinv % _PyHASH_MODULUS
+            # Py3.8+
+            try:
+                dinv = pow(self._denominator, -1, _PyHASH_MODULUS)
+            except ValueError:
+                # ValueError means there is no modular inverse.
+                result = _PyHASH_INF
+            else:
+                # The general algorithm now specifies that the absolute value of
+                # the hash is
+                #    (|N| * dinv) % P
+                # where N is self._numerator and P is _PyHASH_MODULUS.  That's
+                # optimized here in two ways:  first, for a non-negative int i,
+                # hash(i) == i % P, but the int hash implementation doesn't need
+                # to divide, and is faster than doing % P explicitly.  So we do
+                #    hash(|N| * dinv)
+                # instead.  Second, N is unbounded, so its product with dinv may
+                # be arbitrarily expensive to compute.  The final answer is the
+                # same if we use the bounded |N| % P instead, which can again
+                # be done with an int hash() call.  If 0 <= i < P, hash(i) == i,
+                # so this nested hash() call wastes a bit of time making a
+                # redundant copy when |N| < P, but can save an arbitrarily large
+                # amount of computation for large |N|.
+                result = hash(hash(abs(self._numerator)) * dinv)
+
         if self._numerator < 0:
             result = -result
             if result == -1:
