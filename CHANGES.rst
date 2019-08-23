@@ -1,13 +1,13 @@
 ChangeLog
 =========
 
-1.10 (2019-??-??)
+1.10 (2019-08-23)
 ----------------
 
-* ``hash(Fraction)`` is substantially faster in Py3.8+, following an optimisation
+* ``hash(fraction)`` is substantially faster in Py3.8+, following an optimisation
   in CPython 3.9 (https://bugs.python.org/issue37863).
 
-* New method ``Fraction.as_integer_ratio()``.
+* New method ``fraction.as_integer_ratio()``.
 
 
 1.9 (2018-12-26)
