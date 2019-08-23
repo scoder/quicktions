@@ -8,7 +8,7 @@ accuracy and safety.  Clearly not in terms of speed, though, given
 the cdecimal accelerator in Py3.3+.
 
 ``quicktions`` is an adaptation of the original ``fractions`` module
-(as included in CPython 3.5) that is compiled and optimised with
+(as included in CPython 3.7) that is compiled and optimised with
 `Cython <http://cython.org/>`_ into a fast, native extension module.
 
 Compared to the standard library ``fractions`` module in Py2.7 and
@@ -19,4 +19,4 @@ Py3.4, ``quicktions`` is currently about 10x faster, and still about
 For documentation, see the Python standard library's ``fractions``
 module:
 
-https://docs.python.org/3.5/library/fractions.html
+https://docs.python.org/3/library/fractions.html
