@@ -2,7 +2,7 @@ ChangeLog
 =========
 
 1.10 (2019-08-23)
-----------------
+-----------------
 
 * ``hash(fraction)`` is substantially faster in Py3.8+, following an optimisation
   in CPython 3.9 (https://bugs.python.org/issue37863).
