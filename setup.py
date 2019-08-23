@@ -1,6 +1,7 @@
 
-import sys
+import os
 import re
+import sys
 
 try:
     import setuptools
@@ -21,6 +22,9 @@ except ValueError:
 else:
     enable_profiling = True
 
+enable_coverage = os.environ.get("WITH_COVERAGE") == "1"
+force_rebuild = os.environ.get("FORCE_REBUILD") == "1"
+
 try:
     sys.argv.remove("--with-cython")
 except ValueError:
@@ -36,11 +40,19 @@ else:
         compiler_directives = {}
         if enable_profiling:
             compiler_directives['profile'] = True
-        ext_modules = cythonize(ext_modules, compiler_directives=compiler_directives)
+        if enable_coverage:
+            compiler_directives['linetrace'] = True
+        ext_modules = cythonize(
+            ext_modules, compiler_directives=compiler_directives, force=force_rebuild)
 
 if cythonize is None:
     for ext_module in ext_modules:
         ext_module.sources[:] = [m.replace('.pyx', '.c') for m in ext_module.sources]
+elif enable_coverage:
+    for ext_module in ext_modules:
+        ext_module.extra_compile_args += [
+            "-DCYTHON_TRACE_NOGIL=1",
+        ]
 
 
 with open('src/quicktions.pyx') as f:
