@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.11 (2019-12-??)
+1.11 (2019-12-19)
 -----------------
 
 * Fix ``OverflowError`` when parsing string values with long decimal parts.
