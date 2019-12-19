@@ -4,7 +4,6 @@
 #    # Note: TWINE_PASSWORD is set in Travis settings
 
 os: linux
-dist: trusty
 sudo: false
 
 language: python
@@ -27,14 +26,11 @@ script:
 matrix:
   include:
     - python: 2.7
+    - python: 3.8
     - python: 3.7
-      dist: xenial    # Required for Python 3.7
-      sudo: required  # travis-ci/travis-ci#9069
     - python: 3.5
     - python: 3.6
-    - python: 3.8-dev
-      dist: xenial    # Required for Python 3.7
-      sudo: required  # travis-ci/travis-ci#9069
+    #- python: 3.9-dev
 #    - os: osx
 #      osx_image: xcode6.4
 #      env: PY=2
