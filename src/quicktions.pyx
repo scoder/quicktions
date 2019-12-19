@@ -22,7 +22,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['Fraction']
 
-__version__ = '1.10'
+__version__ = '1.11'
 
 cimport cython
 from cpython.unicode cimport Py_UNICODE_TODECIMAL
@@ -1154,7 +1154,8 @@ cdef tuple _parse_fraction(AnyString s):
             decimal_len += 1
             inum = inum * 10 + digit
             state = SMALL_DECIMAL
-            if inum > MAX_SMALL_NUMBER:
+            # 2^n > 10^(n * 5/17)
+            if inum > MAX_SMALL_NUMBER or decimal_len >= (sizeof(idenom) * 8) * 5 // 17:
                 num = inum
                 state = DECIMAL
         elif state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):

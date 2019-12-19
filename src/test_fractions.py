@@ -254,6 +254,12 @@ class FractionTest(unittest.TestCase):
         self.assertEqual((123456789, 1000), _components(F(u"۱۲۳۴۵۶۷۸۹E-۳")))
         self.assertEqual((123456789, 1), _components(F(u"۱۲۳۴۵۶۷۸۹")))
 
+        # Long decimal parts
+        self.assertEqual((3235321053991263, 50000000000000000000),
+                         _components(F("0.00006470642107982526")))
+        for i in range(130):
+            self.assertEqual((3, 10**(i+1)), _components(F("0." + "0" * i + "3")))
+
         # Errors in fractions but not quicktions:
         self.assertEqual((3, 2), _components(F("3 / 2")))
         self.assertEqual((3, 2), _components(F("3 / +2")))

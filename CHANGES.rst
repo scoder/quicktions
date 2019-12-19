@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+1.11 (2019-12-??)
+-----------------
+
+* Fix ``OverflowError`` when parsing string values with long decimal parts.
+
+
 1.10 (2019-08-23)
 -----------------
 
