@@ -832,6 +832,142 @@ cdef _as_float(numerator, denominator):
     return numerator / denominator
 
 
+# Rational arithmetic algorithms: Knuth, TAOCP, Volume 2, 4.5.1.
+#
+# Assume input fractions a and b are normalized.
+#
+# 1) Consider addition/subtraction.
+#
+# Let g = gcd(da, db). Then
+#
+#              na   nb    na*db ± nb*da
+#     a ± b == -- ± -- == ------------- ==
+#              da   db        da*db
+#
+#              na*(db//g) ± nb*(da//g)    t
+#           == ----------------------- == -
+#                      (da*db)//g         d
+#
+# Now, if g > 1, we're working with smaller integers.
+#
+# Note, that t, (da//g) and (db//g) are pairwise coprime.
+#
+# Indeed, (da//g) and (db//g) share no common factors (they were
+# removed) and da is coprime with na (since input fractions are
+# normalized), hence (da//g) and na are coprime.  By symmetry,
+# (db//g) and nb are coprime too.  Then,
+#
+#     gcd(t, da//g) == gcd(na*(db//g), da//g) == 1
+#     gcd(t, db//g) == gcd(nb*(da//g), db//g) == 1
+#
+# Above allows us optimize reduction of the result to lowest
+# terms.  Indeed,
+#
+#     g2 = gcd(t, d) == gcd(t, (da//g)*(db//g)*g) == gcd(t, g)
+#
+#                       t//g2                   t//g2
+#     a ± b == ----------------------- == ----------------
+#              (da//g)*(db//g)*(g//g2)    (da//g)*(db//g2)
+#
+# is a normalized fraction.  This is useful because the unnormalized
+# denominator d could be much larger than g.
+#
+# We should special-case g == 1 (and g2 == 1), since 60.8% of
+# randomly-chosen integers are coprime:
+# https://en.wikipedia.org/wiki/Coprime_integers#Probability_of_coprimality
+# Note, that g2 == 1 always for fractions, obtained from floats: here
+# g is a power of 2 and the unnormalized numerator t is an odd integer.
+#
+# 2) Consider multiplication
+#
+# Let g1 = gcd(na, db) and g2 = gcd(nb, da), then
+#
+#            na*nb    na*nb    (na//g1)*(nb//g2)
+#     a*b == ----- == ----- == -----------------
+#            da*db    db*da    (db//g1)*(da//g2)
+#
+# Note, that after divisions we're multiplying smaller integers.
+#
+# Also, the resulting fraction is normalized, because each of
+# two factors in the numerator is coprime to each of the two factors
+# in the denominator.
+#
+# Indeed, pick (na//g1).  It's coprime with (da//g2), because input
+# fractions are normalized.  It's also coprime with (db//g1), because
+# common factors are removed by g1 == gcd(na, db).
+#
+# As for addition/subtraction, we should special-case g1 == 1
+# and g2 == 1 for same reason.  That happens also for multiplying
+# rationals, obtained from floats.
+
+cdef _add(na, da, nb, db):
+    """a + b"""
+    # return Fraction(na * db + nb * da, da * db)
+    g = _gcd(da, db)
+    if g == 1:
+        return Fraction(na * db + da * nb, da * db, _normalize=False)
+    s = da // g
+    t = na * (db // g) + nb * s
+    g2 = _gcd(t, g)
+    if g2 == 1:
+        return Fraction(t, s * db, _normalize=False)
+    return Fraction(t // g2, s * (db // g2), _normalize=False)
+
+cdef _sub(na, da, nb, db):
+    """a - b"""
+    # return Fraction(na * db - nb * da, da * db)
+    g = _gcd(da, db)
+    if g == 1:
+        return Fraction(na * db - da * nb, da * db, _normalize=False)
+    s = da // g
+    t = na * (db // g) - nb * s
+    g2 = _gcd(t, g)
+    if g2 == 1:
+        return Fraction(t, s * db, _normalize=False)
+    return Fraction(t // g2, s * (db // g2), _normalize=False)
+
+cdef _mul(na, da, nb, db):
+    """a * b"""
+    # return Fraction(na * nb, da * db)
+    g1 = _gcd(na, db)
+    if g1 > 1:
+        na //= g1
+        db //= g1
+    g2 = _gcd(nb, da)
+    if g2 > 1:
+        nb //= g2
+        da //= g2
+    return Fraction(na * nb, db * da, _normalize=False)
+
+cdef _div(na, da, nb, db):
+    """a / b"""
+    # return Fraction(na * db, da * nb)
+    # Same as _mul(), with inversed b.
+    g1 = _gcd(na, nb)
+    if g1 > 1:
+        na //= g1
+        nb //= g1
+    g2 = _gcd(db, da)
+    if g2 > 1:
+        da //= g2
+        db //= g2
+    n, d = na * db, nb * da
+    if d < 0:
+        n, d = -n, -d
+    return Fraction(n, d, _normalize=False)
+
+cdef _floordiv(an, ad, bn, bd):
+    """a // b -> int"""
+    return (an * bd) // (bn * ad)
+
+cdef _divmod(an, ad, bn, bd):
+    div, n_mod = divmod(an * bd, ad * bn)
+    return div, Fraction(n_mod, ad * bd)
+
+cdef _mod(an, ad, bn, bd):
+    return Fraction((an * bd) % (bn * ad), ad * bd)
+
+
 """
 In general, we want to implement the arithmetic operations so
 that mixed-mode operations either call an implementation whose
@@ -905,35 +1041,6 @@ uses similar boilerplate code:
        hard as possible to return an actual value, or the user
        will get a TypeError.
 """
-
-
-cdef _add(an, ad, bn, bd):
-    """a + b"""
-    return Fraction(an * bd + bn * ad, ad * bd)
-
-cdef _sub(an, ad, bn, bd):
-    """a - b"""
-    return Fraction(an * bd - bn * ad, ad * bd)
-
-cdef _mul(an, ad, bn, bd):
-    """a * b"""
-    return Fraction(an * bn, ad * bd)
-
-cdef _div(an, ad, bn, bd):
-    """a / b"""
-    return Fraction(an * bd, ad * bn)
-
-cdef _floordiv(an, ad, bn, bd):
-    """a // b -> int"""
-    return (an * bd) // (bn * ad)
-
-cdef _divmod(an, ad, bn, bd):
-    div, n_mod = divmod(an * bd, ad * bn)
-    return div, Fraction(n_mod, ad * bd)
-
-cdef _mod(an, ad, bn, bd):
-    return Fraction((an * bd) % (bn * ad), ad * bd)
-
 
 cdef:
     _math_op_add = operator.add

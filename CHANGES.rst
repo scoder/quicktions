@@ -7,6 +7,11 @@ ChangeLog
 * Faster and more space friendly pickling and unpickling.
   https://bugs.python.org/issue44154
 
+* Algorithmically faster arithmetic for large denominators, although slower for
+  small fraction components.
+  https://bugs.python.org/issue43420
+  Original patch for CPython by Sergey B. Kirpichev and Raymond Hettinger.
+
 * Make sure ``bool(Fraction)`` always returns a ``bool``.
   https://bugs.python.org/issue39274
 
