@@ -16,6 +16,7 @@ import numbers
 import operator
 import fractions
 import functools
+import itertools
 import sys
 import unittest
 from copy import copy, deepcopy
@@ -858,6 +859,8 @@ class FractionTest(unittest.TestCase):
         self.assertEqual(type(f.numerator), myint)
         self.assertEqual(type(f.denominator), myint)
 
+
+class QuicktionsTest(unittest.TestCase):
     def test_pi_digits(self):
         pi = (
             "3.141592653589793238462643383279502884197169399375105820974944592307816406286"
@@ -874,10 +877,82 @@ class FractionTest(unittest.TestCase):
             self.assertEqual(ff.denominator, qf.denominator)
 
 
+def _gen_fuzzer_values():
+    numbers = [2, 3, 6, 11, 53, 64, 127, 99991]
+    numbers.append(sum(numbers))
+    numbers.append(functools.reduce(operator.mul, numbers))  # product
+
+    for sign in (1, -1):
+        yield sign
+        for base in numbers:
+            value = sign * base
+            for exp in range(8):
+                value *= base
+                yield value
+
+
+_fuzzer_values = sorted(_gen_fuzzer_values())
+print("Fuzzer uses %d values." % len(_fuzzer_values))
+
+
+class FuzzerTest(unittest.TestCase):
+    def test_fuzzing_equal(self):
+        Fraction = fractions.Fraction
+        for n, d in itertools.combinations(_fuzzer_values, 2):
+            f = Fraction(n, d)
+            q = F(n, d)
+            self.assertEqual(f, q, "Fraction(%d, %d) == %r != %r == Quicktion(%d, %d)" % (
+                n, d, f, q, n, d))
+
+    def test_fuzzing_arithmetic(self):
+        try:
+            _gcd = math.gcd
+        except AttributeError:
+            _gcd = gcd  # sort-of testing against myself
+
+        def compare(q, nom, denom):
+            # normalise the expected fraction components
+            g = gcd(nom, denom)
+            exp_n, exp_d = nom // g, denom // g
+            if exp_d < 0:
+                exp_n, exp_d = -exp_n, -exp_d
+
+            self.assertEqual(
+                (exp_n, exp_d), (q.numerator, q.denominator),
+                "[%d/%d, %d/%d, %d/%d]: %r != %r" % (
+                    n, d1, n, d2, n3, d2, (q.numerator, q.denominator), (exp_n, exp_d)))
+
+        for n, d1, d2 in itertools.combinations(_fuzzer_values, 3):
+            q1 = F(n, d1)
+            q2 = F(n, d2)
+            n3 = n + 3
+            q3 = F(n3, d2)
+
+            d = d1 * d2
+            n_d2 = n * d2
+            n_d1 = n * d1
+            n3_d1 = n3 * d1
+
+            compare(q1 + q2, n_d2 + n_d1, d)
+            compare(q1 + q3, n_d2 + n3_d1, d)
+            compare(q1 * q2, n * n, d)
+            compare(q1 * q3, n * n3, d)
+            compare(q1 - q2, n_d2 - n_d1, d)
+            compare(q2 - q1, n_d1 - n_d2, d)
+            compare(q1 - q3, n_d2 - n3_d1, d)
+            compare(q3 - q2, n3 - n, d2)
+            compare(q1 / q2, n_d2, n_d1)
+            compare(q2 / q1, n_d1, n_d2)
+            compare(q1 / q3, n_d2, n3_d1)
+
+
 def test_main():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(GcdTest))
     suite.addTest(unittest.makeSuite(FractionTest))
+    suite.addTest(unittest.makeSuite(QuicktionsTest))
+    if not AVOID_SLOW:
+        suite.addTest(unittest.makeSuite(FuzzerTest))
     import doctest
     suite.addTest(doctest.DocTestSuite('quicktions'))
     return suite
@@ -890,5 +965,15 @@ def main():
     sys.exit(not result.wasSuccessful())
 
 
+AVOID_SLOW = False
+
+
 if __name__ == '__main__':
+    try:
+        sys.argv.remove("--fast")
+    except ValueError:
+        pass
+    else:
+        AVOID_SLOW = True
+
     main()

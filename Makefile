@@ -18,8 +18,11 @@ sdist: dist/$(PACKAGE)-$(VERSION).tar.gz
 dist/$(PACKAGE)-$(VERSION).tar.gz:
 	$(PYTHON) setup.py sdist $(WITH_CYTHON)
 
-test: local
+testslow: local
 	PYTHONPATH=src $(PYTHON) src/test_fractions.py
+
+test: local
+	PYTHONPATH=src $(PYTHON) src/test_fractions.py --fast
 
 clean:
 	rm -fr build src/*.so
