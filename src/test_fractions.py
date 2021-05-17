@@ -15,6 +15,7 @@ import math
 import numbers
 import operator
 import fractions
+import functools
 import sys
 import unittest
 from copy import copy, deepcopy
@@ -423,6 +424,44 @@ class FractionTest(unittest.TestCase):
                                float(F(int('2'*400+'7'), int('3'*400+'1'))))
 
         self.assertTypedEquals(0.1+0j, complex(F(1,10)))
+
+    def testBoolGuarateesBoolReturn(self):
+        # Ensure that __bool__ is used on numerator which guarantees a bool
+        # return.  See also https://bugs.python.org/issue39274
+        @functools.total_ordering
+        class CustomValue:
+            denominator = 1
+
+            def __init__(self, value):
+                self.value = value
+
+            def __bool__(self):
+                return bool(self.value)
+
+            __nonzero__ = __bool__  # Py2
+
+            @property
+            def numerator(self):
+                # required to preserve `self` during instantiation
+                return self
+
+            def __eq__(self, other):
+                raise AssertionError("Avoid comparisons in Fraction.__bool__")
+
+            __lt__ = __eq__
+
+        # We did not implement all abstract methods, so register:
+        numbers.Rational.register(CustomValue)
+
+        numerator = CustomValue(1)
+        r = F(numerator)
+        # ensure the numerator was not lost during instantiation:
+        self.assertIs(r.numerator, numerator)
+        self.assertIs(bool(r), True)
+
+        numerator = CustomValue(0)
+        r = F(numerator)
+        self.assertIs(bool(r), False)
 
     def testRound(self):
         if sys.version_info[0] >= 3:

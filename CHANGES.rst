@@ -4,8 +4,11 @@ ChangeLog
 1.12 (2021-??-??)
 -----------------
 
-* Faster and more space friendly pickling and unpickling, following
+* Faster and more space friendly pickling and unpickling.
   https://bugs.python.org/issue44154
+
+* Make sure ``bool(Fraction)`` always returns a ``bool``.
+  https://bugs.python.org/issue39274
 
 
 1.11 (2019-12-19)

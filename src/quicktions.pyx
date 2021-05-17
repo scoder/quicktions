@@ -783,7 +783,10 @@ cdef class Fraction:
 
     def __bool__(self):
         """a != 0"""
-        return self._numerator != 0
+        # Use bool() because (a._numerator != 0) can return an
+        # object which is not a bool.
+        # See https://bugs.python.org/issue39274
+        return bool(self._numerator)
 
     # support for pickling, copy, and deepcopy
 
