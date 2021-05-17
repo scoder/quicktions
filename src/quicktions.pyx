@@ -788,7 +788,7 @@ cdef class Fraction:
     # support for pickling, copy, and deepcopy
 
     def __reduce__(self):
-        return (type(self), (str(self),))
+        return (type(self), (self._numerator, self._denominator))
 
     def __copy__(self):
         if type(self) is Fraction:

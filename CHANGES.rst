@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+1.12 (2021-??-??)
+-----------------
+
+* Faster and more space friendly pickling and unpickling, following
+  https://bugs.python.org/issue44154
+
+
 1.11 (2019-12-19)
 -----------------
 
