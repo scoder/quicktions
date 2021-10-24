@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.12 (2021-??-??)
+1.12 (2021-10-24)
 -----------------
 
 * Faster and more space friendly pickling and unpickling.
@@ -14,6 +14,8 @@ ChangeLog
 
 * Make sure ``bool(Fraction)`` always returns a ``bool``.
   https://bugs.python.org/issue39274
+
+* Built using Cython 3.0.0a9.
 
 
 1.11 (2019-12-19)
