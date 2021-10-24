@@ -32,6 +32,9 @@ jobs:
       run: |
         make sdist ${{ matrix.env.TARGET }}
 
+    - name: Run tests
+      run: make testslow
+
     - name: Copy wheels in dist
       run: cp wheelhouse*/*.whl dist/
 
