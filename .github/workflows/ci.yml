@@ -1,0 +1,49 @@
+name: Build & Publish wheel
+
+on:
+  push:
+  create:
+
+jobs:
+  build:
+
+    strategy:
+      # Allows for matrix sub-jobs to fail without canceling the rest
+      fail-fast: false
+
+      matrix:
+        env: [{TARGET: wheel_manylinux2010_x86_64}, {TARGET: wheel_manylinux2010_i686}, {TARGET: wheel_manylinux2014_aarch64}]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install Dependency
+      run: |
+        pip install --pre "Cython>=3.0.0a9"
+
+    - name: Building wheel
+      run: |
+        make sdist ${{ matrix.env.TARGET }}
+
+    - name: Copy wheels in dist
+      run: cp wheelhouse*/*.whl dist/
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/*manylinux*.whl
+
+    - name: Archive Wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.env.TARGET }}
+        path: dist/*manylinux*.whl
+        if-no-files-found: ignore
