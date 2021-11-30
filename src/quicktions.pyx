@@ -473,31 +473,59 @@ cdef class Fraction:
 
     def __add__(a, b):
         """a + b"""
-        return _math_op(a, b, _add, _math_op_add)
+        return forward(a, b, _add, _math_op_add)
+
+    def __radd__(b, a):
+        """a + b"""
+        return reverse(a, b, _add, _math_op_add)
 
     def __sub__(a, b):
         """a - b"""
-        return _math_op(a, b, _sub, _math_op_sub)
+        return forward(a, b, _sub, _math_op_sub)
+
+    def __rsub__(b, a):
+        """a - b"""
+        return reverse(a, b, _sub, _math_op_sub)
 
     def __mul__(a, b):
         """a * b"""
-        return _math_op(a, b, _mul, _math_op_mul)
+        return forward(a, b, _mul, _math_op_mul)
+
+    def __rmul__(b, a):
+        """a * b"""
+        return reverse(a, b, _mul, _math_op_mul)
 
     def __div__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, _math_op_div)
+        return forward(a, b, _div, _math_op_div)
+
+    def __rdiv__(b, a):
+        """a / b"""
+        return reverse(a, b, _div, _math_op_div)
 
     def __truediv__(a, b):
         """a / b"""
-        return _math_op(a, b, _div, _math_op_truediv)
+        return forward(a, b, _div, _math_op_truediv)
+
+    def __rtruediv__(b, a):
+        """a / b"""
+        return reverse(a, b, _div, _math_op_truediv)
 
     def __floordiv__(a, b):
         """a // b"""
-        return _math_op(a, b, _floordiv, _math_op_floordiv)
+        return forward(a, b, _floordiv, _math_op_floordiv)
+
+    def __rfloordiv__(b, a):
+        """a // b"""
+        return reverse(a, b, _floordiv, _math_op_floordiv)
 
     def __mod__(a, b):
         """a % b"""
-        return _math_op(a, b, _mod, _math_op_mod)
+        return forward(a, b, _mod, _math_op_mod)
+
+    def __rmod__(b, a):
+        """a % b"""
+        return reverse(a, b, _mod, _math_op_mod)
 
     def __divmod__(a, b):
         """divmod(self, other): The pair (self // other, self % other).
@@ -505,7 +533,15 @@ cdef class Fraction:
         Sometimes this can be computed faster than the pair of
         operations.
         """
-        return _math_op(a, b, _divmod, _math_op_divmod)
+        return forward(a, b, _divmod, _math_op_divmod)
+
+    def __rdivmod__(b, a):
+        """divmod(self, other): The pair (self // other, self % other).
+
+        Sometimes this can be computed faster than the pair of
+        operations.
+        """
+        return reverse(a, b, _divmod, _math_op_divmod)
 
     def __pow__(a, b, x):
         """a ** b
@@ -516,26 +552,38 @@ cdef class Fraction:
         """
         if x is not None:
             return NotImplemented
-        if isinstance(a, Fraction):
-            # normal call
-            if isinstance(b, (int, long, Fraction, Rational)):
-                return _pow(a.numerator, a.denominator, b.numerator, b.denominator)
-            else:
-                return (a.numerator / a.denominator) ** b
+
+        if isinstance(b, (int, long)):
+            return _pow(a.numerator, a.denominator, b, 1)
+        elif isinstance(b, (Fraction, Rational)):
+            return _pow(a.numerator, a.denominator, b.numerator, b.denominator)
         else:
-            # reversed call
-            bn, bd = b.numerator, b.denominator
-            if bd == 1 and bn >= 0:
-                # If a is an int, keep it that way if possible.
-                return a ** bn
+            return (a.numerator / a.denominator) ** b
 
-            if isinstance(a, (int, long, Rational)):
-                return _pow(a.numerator, a.denominator, bn, bd)
+    def __rpow__(b, a, x):
+        """a ** b
 
-            if bd == 1:
-                return a ** bn
+        If b is not an integer, the result will be a float or complex
+        since roots are generally irrational. If b is an integer, the
+        result will be rational.
+        """
+        if x is not None:
+            return NotImplemented
 
-            return a ** (bn / bd)
+        bn, bd = b.numerator, b.denominator
+        if bd == 1 and bn >= 0:
+            # If a is an int, keep it that way if possible.
+            return a ** bn
+
+        if isinstance(a, (int, long)):
+            return _pow(a, 1, bn, bd)
+        if isinstance(a, (Fraction, Rational)):
+            return _pow(a.numerator, a.denominator, bn, bd)
+
+        if bd == 1:
+            return a ** bn
+
+        return a ** (bn / bd)
 
     def __pos__(a):
         """+a: Coerces a subclass instance to Fraction"""
@@ -1054,13 +1102,6 @@ cdef:
 
 
 ctypedef object (*math_func)(an, ad, bn, bd)
-
-
-cdef _math_op(a, b, math_func monomorphic_operator, pyoperator):
-    if isinstance(a, Fraction):
-        return forward(a, b, monomorphic_operator, pyoperator)
-    else:
-        return reverse(a, b, monomorphic_operator, pyoperator)
 
 
 cdef forward(a, b, math_func monomorphic_operator, pyoperator):
