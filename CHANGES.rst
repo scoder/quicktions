@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.12 (2021-10-24)
+1.12 (2021-??-??)
 -----------------
 
 * Faster and more space friendly pickling and unpickling.
