@@ -17,13 +17,9 @@ jobs:
           - manylinux1_i686
           - manylinux_2_24_x86_64
           - manylinux_2_24_i686
-          - manylinux_2_24_aarch64
           - musllinux_1_1_x86_64
-        pyversion: ["*"]
+        pyversion: ["cp*"]
 
-        exclude:
-          - image: manylinux_2_24_aarch64
-            pyversion: "*"
         include:
           - image: manylinux_2_24_aarch64
             pyversion: "cp37*"
@@ -103,11 +99,11 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: dist/lxml-*.whl
+        files: dist/*.whl
 
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
         name: wheels-${{ matrix.os }}
-        path: dist/lxml-*.whl
+        path: dist/*.whl
         if-no-files-found: ignore

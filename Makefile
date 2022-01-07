@@ -2,11 +2,14 @@ PYTHON?=python
 VERSION?=$(shell sed -ne "s|^__version__\s*=\s*'\([^']*\)'.*|\1|p" src/quicktions.pyx)
 PACKAGE=quicktions
 WITH_CYTHON := $(shell python -c 'from Cython.Build import cythonize' 2>/dev/null && echo "--with-cython")
+PYTHON_WHEEL_BUILD_VERSION := "cp*"
 
 MANYLINUX_IMAGES= \
-	manylinux2010_x86_64 \
-	manylinux2010_i686 \
-	manylinux2014_aarch64
+    manylinux1_x86_64 \
+    manylinux1_i686 \
+    manylinux_2_24_x86_64 \
+    manylinux_2_24_i686 \
+    musllinux_1_1_x86_64
 
 .PHONY: all local sdist test clean realclean wheel_manylinux
 
@@ -50,7 +53,7 @@ wheel_%: dist/$(PACKAGE)-$(VERSION).tar.gz
 		-e LDFLAGS="$(LDFLAGS) -fPIC" \
 		-e WHEELHOUSE=wheelhouse$(subst wheel_manylinux,,$@) \
 		quay.io/pypa/$(subst wheel_,,$@) \
-		bash -c 'for PYBIN in /opt/python/cp*/bin; do \
+		bash -c 'for PYBIN in /opt/python/$(PYTHON_WHEEL_BUILD_VERSION)/bin; do \
 		    $$PYBIN/python -V; \
 		    { $$PYBIN/pip wheel -w /io/$$WHEELHOUSE /io/$< & } ; \
 		    done; wait; \
