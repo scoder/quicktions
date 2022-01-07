@@ -48,7 +48,10 @@ jobs:
       run: |
         make PYTHON_WHEEL_BUILD_VERSION="${{ matrix.pyversion }}" sdist wheel_${{ matrix.image }}
 
-    - name: Run tests
+    - name: Run tox tests
+      run: tox
+
+    - name: Run slow tests
       run: make testslow
 
     - name: Copy wheels in dist
@@ -94,6 +97,12 @@ jobs:
 
     - name: Build wheels
       run: make sdist wheel
+
+    - name: Run tox tests
+      run: tox
+
+    - name: Run slow tests
+      run: make testslow
 
     - name: Release
       uses: softprops/action-gh-release@v1
