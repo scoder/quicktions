@@ -12,7 +12,27 @@ jobs:
       fail-fast: false
 
       matrix:
-        env: [{TARGET: wheel_manylinux2010_x86_64}, {TARGET: wheel_manylinux2010_i686}, {TARGET: wheel_manylinux2014_aarch64}, {TARGET: wheel_musllinux_1_1_x86_64}]
+        image:
+          - manylinux1_x86_64
+          - manylinux1_i686
+          - manylinux_2_24_x86_64
+          - manylinux_2_24_i686
+          - manylinux_2_24_aarch64
+          - musllinux_1_1_x86_64
+        pyversion: ["*"]
+
+        exclude:
+          - image: manylinux_2_24_aarch64
+            pyversion: "*"
+        include:
+          - image: manylinux_2_24_aarch64
+            pyversion: "cp37*"
+          - image: manylinux_2_24_aarch64
+            pyversion: "cp38*"
+          - image: manylinux_2_24_aarch64
+            pyversion: "cp39*"
+          - image: manylinux_2_24_aarch64
+            pyversion: "cp310*"
 
     runs-on: ubuntu-latest
 
@@ -30,7 +50,7 @@ jobs:
 
     - name: Building wheel
       run: |
-        make sdist ${{ matrix.env.TARGET }}
+        make PYTHON_WHEEL_BUILD_VERSION="${{ matrix.pyversion }}" sdist wheel_${{ matrix.image }}
 
     - name: Run tests
       run: make testslow
