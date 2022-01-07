@@ -35,6 +35,9 @@ realclean: clean
 qemu-user-static:
 	docker run --rm --privileged hypriot/qemu-register
 
+wheel:
+	$(PYTHON) setup.py bdist_wheel
+
 wheel_manylinux: sdist $(addprefix wheel_,$(MANYLINUX_IMAGES))
 $(addprefix wheel_,$(filter-out %_x86_64, $(filter-out %_i686, $(MANYLINUX_IMAGES)))): qemu-user-static
 
