@@ -47,8 +47,6 @@ init:
   - python --version
 
 install:
-  - ECHO 'Installed SDKs:'
-  - ps: 'ls "C:/Program Files/Microsoft SDKs/Windows"'
   #- pip install --upgrade pip
   - pip install -r requirements.txt
   - python setup.py build_ext --inplace --with-cython
