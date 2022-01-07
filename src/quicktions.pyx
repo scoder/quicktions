@@ -44,6 +44,7 @@ import operator
 import sys
 
 cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
+cdef object _operator_index = operator.index
 
 
 # Cache widely used 10**x int objects.
@@ -598,6 +599,13 @@ cdef class Fraction:
     def __abs__(a):
         """abs(a)"""
         return Fraction(abs(a._numerator), a._denominator, _normalize=False)
+
+    def __int__(a):
+        """int(a)"""
+        if a._numerator < 0:
+            return _operator_index(-(-a._numerator // a._denominator))
+        else:
+            return _operator_index(a._numerator // a._denominator)
 
     def __trunc__(a):
         """trunc(a)"""
