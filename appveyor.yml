@@ -1,3 +1,5 @@
+image: Visual Studio 2019
+
 # parts from
 # - matrix: https://github.com/pythonnet/pythonnet/blob/master/appveyor.yml
 # - Visual Studio 2010 py33 py34 on x64: https://github.com/ogrisel/python-appveyor-demo/blob/master/appveyor/run_with_env.cmd
@@ -23,6 +25,7 @@ environment:
 
   matrix:
     - PYTHON_VERSION: 2.7
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2013
     - PYTHON_VERSION: "3.10"
     - PYTHON_VERSION: 3.9
     - PYTHON_VERSION: 3.8
