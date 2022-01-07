@@ -5,6 +5,34 @@ on:
   create:
 
 jobs:
+  Tests:
+    strategy:
+      # Allows for matrix sub-jobs to fail without canceling the rest
+      fail-fast: false
+
+      matrix:
+        python_version: ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11-dev"]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python_version }}
+
+    - name: Install Dependency
+      run: |
+        python -m pip install -U pip setuptools && python -m pip install -r requirements.txt
+
+    - name: Build
+      run: make local
+
+    - name: Run slow tests
+      run: make testslow
+
   Linux:
 
     strategy:
@@ -47,9 +75,6 @@ jobs:
     - name: Building wheel
       run: |
         make PYTHON_WHEEL_BUILD_VERSION="${{ matrix.pyversion }}" sdist wheel_${{ matrix.image }}
-
-    - name: Run tox tests
-      run: tox
 
     - name: Run slow tests
       run: make testslow
@@ -97,9 +122,6 @@ jobs:
 
     - name: Build wheels
       run: make sdist wheel
-
-    - name: Run tox tests
-      run: tox
 
     - name: Run slow tests
       run: make testslow
