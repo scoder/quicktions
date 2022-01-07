@@ -8,15 +8,30 @@ accuracy and safety.  Clearly not in terms of speed, though, given
 the cdecimal accelerator in Py3.3+.
 
 ``quicktions`` is an adaptation of the original ``fractions`` module
-(as included in CPython 3.7) that is compiled and optimised with
-`Cython <http://cython.org/>`_ into a fast, native extension module.
+(as included in CPython 3.10) that is compiled and optimised with
+`Cython <https://cython.org/>`_ into a fast, native extension module.
 
-Compared to the standard library ``fractions`` module in Py2.7 and
-Py3.4, ``quicktions`` is currently about 10x faster, and still about
-6x faster than the current version in Python 3.5.  It's also about
-15x faster than the (Python implemented) ``decimal`` module in Py2.7.
+Compared to the standard library ``fractions`` module of CPython,
+computations in ``quicktions`` are about
 
-For documentation, see the Python standard library's ``fractions``
-module:
+- 10x faster in Python 2.7 and 3.4
+- 6x faster in Python 3.5
+- 4x faster in Python 3.10
+
+Compared to the ``fractions`` module in CPython 3.10, instantiation of a
+``Fraction`` in ``quicktions`` is also
+
+- 13x faster from a floating point string value (e.g. ``Fraction("123.456789")``)
+- 3-4x faster from a floating point value (e.g. ``Fraction(123.456789)``)
+- 2-4x faster from an integer numerator-denominator pair (e.g. ``Fraction(123, 456)``)
+
+Parsing a Fraction from floating point strings is about **13x faster* in
+Python 3.10, instantiating it from a floating point value about 4x faster.
+
+The C implemented ``decimal`` module in Python 3 is about 5x faster
+than ``quicktions``, which is in turn about 15x faster than the Python
+implemented ``decimal`` module in Python 2.7.
+
+For documentation, see the Python standard library's ``fractions`` module:
 
 https://docs.python.org/3/library/fractions.html
