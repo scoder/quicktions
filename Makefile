@@ -9,6 +9,7 @@ MANYLINUX_IMAGES= \
     manylinux1_i686 \
     manylinux_2_24_x86_64 \
     manylinux_2_24_i686 \
+    manylinux_2_24_aarch64 \
     musllinux_1_1_x86_64
 
 .PHONY: all local sdist test clean realclean wheel_manylinux
