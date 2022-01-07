@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+1.13 (2022-??-??)
+-----------------
+
+* ``Fraction`` did not implement ``__int__``.
+  https://bugs.python.org/issue44547
+
+
 1.12 (2022-01-07)
 -----------------
 
