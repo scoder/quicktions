@@ -47,7 +47,7 @@ install:
   - ECHO 'Installed SDKs:'
   - ps: 'ls "C:/Program Files/Microsoft SDKs/Windows"'
   #- pip install --upgrade pip
-  - pip install -r requirements-appveyor.txt
+  - pip install -r requirements.txt
   - python setup.py build_ext --inplace --with-cython
 
 build: false  # First tests then build (is python not C)
