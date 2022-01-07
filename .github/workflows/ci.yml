@@ -63,7 +63,7 @@ jobs:
     - name: Archive Wheels
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ matrix.env.TARGET }}
+        name: ${{ matrix.image }}
         path: dist/*.whl
         if-no-files-found: ignore
 
