@@ -26,7 +26,7 @@ jobs:
 
     - name: Install Dependency
       run: |
-        pip install --pre "Cython>=3.0.0a9"
+        pip install --pre "Cython>=3.0.0a10"
 
     - name: Building wheel
       run: |
