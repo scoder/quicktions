@@ -7,6 +7,9 @@
 # Based on the "fractions" module in CPython 3.4+.
 # https://hg.python.org/cpython/file/b18288f24501/Lib/fractions.py
 #
+# Updated to match the recent development in CPython.
+# https://github.com/python/cpython/blob/main/Lib/fractions.py
+#
 # Adapted for efficient Cython compilation by Stefan Behnel.
 #
 
@@ -608,7 +611,7 @@ cdef class Fraction:
             return _operator_index(a._numerator // a._denominator)
 
     def __trunc__(a):
-        """trunc(a)"""
+        """math.trunc(a)"""
         if a._numerator < 0:
             return -(-a._numerator // a._denominator)
         else:
