@@ -1317,7 +1317,7 @@ cdef tuple _parse_fraction(AnyString s):
             inum = inum * 10 + digit
             state = SMALL_DECIMAL
             # 2^n > 10^(n * 5/17)
-            if inum > MAX_SMALL_NUMBER or decimal_len >= (sizeof(idenom) * 8) * 5 // 17:
+            if inum > MAX_SMALL_NUMBER or decimal_len >= <Py_ssize_t>(sizeof(idenom) * 8) * 5 // 17:
                 num = inum
                 state = DECIMAL
         elif state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
