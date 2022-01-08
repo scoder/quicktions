@@ -25,9 +25,6 @@ Compared to the ``fractions`` module in CPython 3.10, instantiation of a
 - 3-4x faster from a floating point value (e.g. ``Fraction(123.456789)``)
 - 2-4x faster from an integer numerator-denominator pair (e.g. ``Fraction(123, 456)``)
 
-Parsing a Fraction from floating point strings is about **13x faster* in
-Python 3.10, instantiating it from a floating point value about 4x faster.
-
 The C implemented ``decimal`` module in Python 3 is about 5x faster
 than ``quicktions``, which is in turn about 15x faster than the Python
 implemented ``decimal`` module in Python 2.7.
