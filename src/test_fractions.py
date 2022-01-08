@@ -984,15 +984,37 @@ class FractionTest(unittest.TestCase):
 
 
 class QuicktionsTest(unittest.TestCase):
+    _pi = (
+        "3.141592653589793238462643383279502884197169399375105820974944592307816406286"
+        "208998628034825342117067982148086513282306647093844609550582231725359408128481"
+        "117450284102701938521105559644622948954930381964428810975665933446128475648233"
+        "786783165271201909145648566923460348610454326648213393607260249141273724587006"
+    )
+
     def test_pi_digits(self):
-        pi = (
-            "3.141592653589793238462643383279502884197169399375105820974944592307816406286"
-            "208998628034825342117067982148086513282306647093844609550582231725359408128481"
-            "117450284102701938521105559644622948954930381964428810975665933446128475648233"
-            "786783165271201909145648566923460348610454326648213393607260249141273724587006"
-        )
+        pi = self._pi
         for i in range(2, len(pi)):
             s = pi[:i]
+            ff = fractions.Fraction(s)
+            qf = F(s)
+            self.assertEqual(ff, qf)
+            self.assertEqual(ff.numerator, qf.numerator)
+            self.assertEqual(ff.denominator, qf.denominator)
+
+    def test_pi_digits_exp(self):
+        pi = self._pi
+        for i in range(2, len(pi)):
+            s = pi[:i] + "e%d" % (i - 2)
+            ff = fractions.Fraction(s)
+            qf = F(s)
+            self.assertEqual(ff, qf)
+            self.assertEqual(ff.numerator, qf.numerator)
+            self.assertEqual(ff.denominator, qf.denominator)
+
+    def test_pi_digits_exp_neg(self):
+        pi = self._pi
+        for i in range(2, len(pi)):
+            s = pi[:i] + "e-%d" % (i - 2)
             ff = fractions.Fraction(s)
             qf = F(s)
             self.assertEqual(ff, qf)
