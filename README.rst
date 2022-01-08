@@ -2,10 +2,10 @@
 quicktions
 ==========
 
-Python's ``Fraction`` data type is an excellent way to do exact money
-calculations and largely beats ``Decimal`` in terms of simplicity,
-accuracy and safety.  Clearly not in terms of speed, though, given
-the cdecimal accelerator in Py3.3+.
+Python's ``Fraction`` data type is an excellent way to do exact calculations
+with unlimited rational numbers and largely beats ``Decimal`` in terms of
+simplicity, accuracy and safety.  Clearly not in terms of speed, though,
+given the cdecimal accelerator in Python 3.3+.
 
 ``quicktions`` is an adaptation of the original ``fractions`` module
 (as included in CPython 3.10) that is compiled and optimised with
