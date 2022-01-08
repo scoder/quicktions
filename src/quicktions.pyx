@@ -1345,11 +1345,13 @@ cdef tuple _parse_fraction(AnyString s):
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
         # Special case for 'small' numbers: normalise directly in C space.
         if inum and decimal_len:
-            denom = pow10(decimal_len)
-            igcd = _ibgcd[ullong](inum, denom)
+            idenom = 10 ** decimal_len
+            igcd = _ibgcd[ullong](inum, idenom)
             if igcd > 1:
                 inum //= igcd
-                denom //= igcd
+                denom = idenom // igcd
+            else:
+                denom = pow10(decimal_len)
         else:
             denom = 1
         if is_neg:
