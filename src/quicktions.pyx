@@ -1192,11 +1192,19 @@ cdef _raise_parse_overflow(s):
     raise OverflowError(f"Exponent too large for Fraction: {s!r}") from None
 
 
+cdef inline int _parse_digit(Py_UCS4 c):
+    cdef unsigned int udigit
+    udigit = (<unsigned int> c) - <unsigned int> '0'  # Relies on integer underflow for dots etc.
+    if udigit > 9:
+        return Py_UNICODE_TODECIMAL(c)
+    return <int> udigit
+
+
 cdef tuple _parse_fraction(AnyString s):
     """
     Parse a string into a number tuple: (nominator, denominator, is_normalised)
     """
-    cdef Py_ssize_t pos, decimal_len = 0, s_len = len(s)
+    cdef Py_ssize_t pos, start_pos, decimal_len = 0, s_len = len(s)
     cdef Py_UCS4 c
     cdef ParserState state = BEGIN_SPACE
 
@@ -1206,15 +1214,15 @@ cdef tuple _parse_fraction(AnyString s):
     cdef long long inum = 0, idecimal = 0, idenom = 0, iexp = 0
     cdef ullong igcd
     cdef object num = None, decimal, denom
+    # 2^n > 10^(n * 5/17)
+    cdef Py_ssize_t max_decimal_len = <Py_ssize_t> (sizeof(inum) * 8) * 5 // 17
 
     pos = 0
     while pos < s_len:
         c = s[pos]
         pos += 1
-        udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
-        if udigit <= 9:
-            digit = <int>udigit
-        else:
+        digit = _parse_digit(c)
+        if digit == -1:
             if c == u'/':
                 if state == SMALL_NUM:
                     num = inum
@@ -1277,8 +1285,6 @@ cdef tuple _parse_fraction(AnyString s):
                         _raise_invalid_input(s)
                     continue
 
-            digit = Py_UNICODE_TODECIMAL(c)
-            if digit == -1:
                 _raise_invalid_input(s)
                 continue
 
@@ -1286,12 +1292,35 @@ cdef tuple _parse_fraction(AnyString s):
         if state in (BEGIN_SPACE, BEGIN_SIGN, SMALL_NUM, SMALL_NUM_US):
             inum = inum * 10 + digit
             state = SMALL_NUM
+
+            # fast-path for consecutive digits
+            while pos < s_len and inum <= MAX_SMALL_NUMBER:
+                c = s[pos]
+                digit = _parse_digit(c)
+                if digit == -1:
+                    break
+                inum = inum * 10 + digit
+                pos += 1
+
             if inum > MAX_SMALL_NUMBER:
                 num = inum
                 state = NUM
         elif state in (NUM, NUM_US):
             num = num * 10 + digit
             state = NUM
+
+            # fast-path for consecutive digits
+            inum = 0
+            start_pos = pos
+            while pos < s_len and inum <= MAX_SMALL_NUMBER:
+                c = s[pos]
+                digit = _parse_digit(c)
+                if digit == -1:
+                    break
+                inum = inum * 10 + digit
+                pos += 1
+            if pos > start_pos:
+                num = num * pow10(pos - start_pos) + inum
         else:
             _raise_invalid_input(s)
 
@@ -1306,10 +1335,8 @@ cdef tuple _parse_fraction(AnyString s):
         while pos < s_len:
             c = s[pos]
             pos += 1
-            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
-            if udigit <= 9:
-                digit = <int>udigit
-            else:
+            digit = _parse_digit(c)
+            if digit == -1:
                 if c in u'-+':
                     if state == DENOM_START:
                         is_neg ^= (c == u'-')
@@ -1344,8 +1371,6 @@ cdef tuple _parse_fraction(AnyString s):
                             _raise_invalid_input(s)
                         continue
 
-                digit = Py_UNICODE_TODECIMAL(c)
-                if digit == -1:
                     _raise_invalid_input(s)
                     continue
 
@@ -1353,24 +1378,45 @@ cdef tuple _parse_fraction(AnyString s):
             if state in (DENOM_START, DENOM_SIGN, SMALL_DENOM, SMALL_DENOM_US):
                 idenom = idenom * 10 + digit
                 state = SMALL_DENOM
+
+                # fast-path for consecutive digits
+                while pos < s_len and idenom <= MAX_SMALL_NUMBER:
+                    c = s[pos]
+                    digit = _parse_digit(c)
+                    if digit == -1:
+                        break
+                    idenom = idenom * 10 + digit
+                    pos += 1
+
                 if idenom > MAX_SMALL_NUMBER:
                     denom = idenom
                     state = DENOM
             elif state in (DENOM, DENOM_US):
                 denom = denom * 10 + digit
                 state = DENOM
+
+                # fast-path for consecutive digits
+                idenom = 0
+                start_pos = pos
+                while pos < s_len and idenom <= MAX_SMALL_NUMBER:
+                    c = s[pos]
+                    digit = _parse_digit(c)
+                    if digit == -1:
+                        break
+                    idenom = idenom * 10 + digit
+                    pos += 1
+                if pos > start_pos:
+                    denom = denom * pow10(pos - start_pos) + idenom
             else:
                 _raise_invalid_input(s)
 
-    elif state in  (SMALL_DECIMAL_DOT, START_DECIMAL_DOT):
+    elif state in (SMALL_DECIMAL_DOT, START_DECIMAL_DOT):
         # SMALL_NUM '.'  | '.'
         while pos < s_len:
             c = s[pos]
             pos += 1
-            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
-            if udigit <= 9:
-                digit = <int>udigit
-            else:
+            digit = _parse_digit(c)
+            if digit == -1:
                 if c == u'_':
                     if state == SMALL_DECIMAL:
                         state = SMALL_DECIMAL_US
@@ -1399,18 +1445,26 @@ cdef tuple _parse_fraction(AnyString s):
                             _raise_invalid_input(s)
                         continue
 
-                digit = Py_UNICODE_TODECIMAL(c)
-                if digit == -1:
                     _raise_invalid_input(s)
                     continue
 
             # normal digit found
             if state in (START_DECIMAL_DOT, SMALL_DECIMAL_DOT, SMALL_DECIMAL, SMALL_DECIMAL_US):
-                decimal_len += 1
                 inum = inum * 10 + digit
+                decimal_len += 1
                 state = SMALL_DECIMAL
-                # 2^n > 10^(n * 5/17)
-                if inum > MAX_SMALL_NUMBER or decimal_len >= <Py_ssize_t>(sizeof(idenom) * 8) * 5 // 17:
+
+                # fast-path for consecutive digits
+                while pos < s_len and inum <= MAX_SMALL_NUMBER and decimal_len < max_decimal_len:
+                    c = s[pos]
+                    digit = _parse_digit(c)
+                    if digit == -1:
+                        break
+                    inum = inum * 10 + digit
+                    decimal_len += 1
+                    pos += 1
+
+                if inum > MAX_SMALL_NUMBER or decimal_len >= max_decimal_len:
                     num = inum
                     state = DECIMAL
                     break
@@ -1422,10 +1476,8 @@ cdef tuple _parse_fraction(AnyString s):
         while pos < s_len:
             c = s[pos]
             pos += 1
-            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
-            if udigit <= 9:
-                digit = <int>udigit
-            else:
+            digit = _parse_digit(c)
+            if digit == -1:
                 if c == u'_':
                     if state == DECIMAL:
                         state = DECIMAL_US
@@ -1447,16 +1499,28 @@ cdef tuple _parse_fraction(AnyString s):
                             _raise_invalid_input(s)
                         break
 
-                digit = Py_UNICODE_TODECIMAL(c)
-                if digit == -1:
                     _raise_invalid_input(s)
                     continue
 
             # normal digit found
             if state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
-                decimal_len += 1
                 num = num * 10 + digit
+                decimal_len += 1
                 state = DECIMAL
+
+                # fast-path for consecutive digits
+                inum = 0
+                start_pos = pos
+                while pos < s_len and inum <= MAX_SMALL_NUMBER:
+                    c = s[pos]
+                    digit = _parse_digit(c)
+                    if digit == -1:
+                        break
+                    inum = inum * 10 + digit
+                    decimal_len += 1
+                    pos += 1
+                if pos > start_pos:
+                    num = num * pow10(pos - start_pos) + inum
             else:
                 _raise_invalid_input(s)
 
@@ -1465,10 +1529,8 @@ cdef tuple _parse_fraction(AnyString s):
         while pos < s_len:
             c = s[pos]
             pos += 1
-            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
-            if udigit <= 9:
-                digit = <int>udigit
-            else:
+            digit = _parse_digit(c)
+            if digit == -1:
                 if c in u'-+':
                     if state == EXP_E:
                         exp_is_neg = c == u'-'
@@ -1490,17 +1552,25 @@ cdef tuple _parse_fraction(AnyString s):
                             _raise_invalid_input(s)
                         break
 
-                digit = Py_UNICODE_TODECIMAL(c)
-                if digit == -1:
                     _raise_invalid_input(s)
                     continue
 
             # normal digit found
             if state in (EXP_E, EXP_SIGN, EXP, EXP_US):
                 iexp = iexp * 10 + digit
+                state = EXP
+
+                # fast-path for consecutive digits
+                while pos < s_len and iexp <= MAX_SMALL_NUMBER:
+                    c = s[pos]
+                    digit = _parse_digit(c)
+                    if digit == -1:
+                        break
+                    iexp = iexp * 10 + digit
+                    pos += 1
+
                 if iexp > MAX_SMALL_NUMBER:
                     _raise_parse_overflow(s)
-                state = EXP
             else:
                 _raise_invalid_input(s)
 
