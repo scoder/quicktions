@@ -1202,7 +1202,7 @@ cdef inline int _parse_digit(Py_UCS4 c):
 
 cdef tuple _parse_fraction(AnyString s):
     """
-    Parse a string into a number tuple: (nominator, denominator, is_normalised)
+    Parse a string into a number tuple: (numerator, denominator, is_normalised)
     """
     cdef Py_ssize_t pos, start_pos, decimal_len = 0, s_len = len(s)
     cdef Py_UCS4 c
