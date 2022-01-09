@@ -29,7 +29,8 @@ We provide a set of micro-benchmarks here:
 
 https://github.com/scoder/quicktions/tree/master/benchmark
 
-As of quicktions 1.12, the different implementations compare as follows in CPython 3.10:
+As of quicktions 1.12, the different number types and implementations compare
+as follows in CPython 3.10:
 
 .. code-block::
 
