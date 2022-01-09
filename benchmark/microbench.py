@@ -1,9 +1,9 @@
 import datetime
 import itertools
 import operator
+import statistics
 import timeit
 from collections import defaultdict
-from math import fsum
 
 from decimal import Decimal
 from fractions import Fraction as PyFraction
@@ -64,7 +64,10 @@ def all_types(values, for_cls):
             )
     else:
         def types(v):
-            return (repr(v), v)
+            return (
+                repr(v),
+                v,
+            )
 
     return [
         tp_v
@@ -75,11 +78,11 @@ def all_types(values, for_cls):
 
 def run_bm(code, setup='pass', number=200, repeat=1_000, gns=None):
     times = timeit.repeat(code, setup, number=number, repeat=repeat, globals=gns)
-    times.sort()
     p10 = len(times) // 10
     if p10 >= 1:
+        times.sort()
         times = times[p10:-p10]
-    return fsum(times) / len(times) * 1_000_000
+    return statistics.mean(times) * 1_000_000  # s -> us
 
 
 def bm_instantiation(values=benchmark_values, classes=classes):
@@ -106,7 +109,7 @@ def bm_calculation(expressions=benchmark_expressions, values=benchmark_values, c
                 results[f"{cls_name}: {expr}"].append(run_bm(expr, number=30, repeat=100, gns=gns))
 
         # average over all value combinations
-        results = {expr: fsum(t) / len(t) for expr, t in results.items()}
+        results = {expr: statistics.mean(t) for expr, t in results.items()}
         yield (cls, results)
 
 
@@ -132,7 +135,7 @@ def main():
 
     avg_by_type = defaultdict(dict)
     for (what, cls), results in results_by_type.items():
-        avg_by_type[what][cls] = fsum(results.values()) / len(results)
+        avg_by_type[what][cls] = statistics.mean(results.values())
 
     for what, timings in sorted(avg_by_type.items(), reverse=True):
         print()
