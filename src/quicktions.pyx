@@ -1196,8 +1196,7 @@ cdef tuple _parse_fraction(AnyString s):
     """
     Parse a string into a number tuple: (nominator, denominator, is_normalised)
     """
-    cdef size_t i
-    cdef Py_ssize_t decimal_len = 0
+    cdef Py_ssize_t pos, decimal_len = 0, s_len = len(s)
     cdef Py_UCS4 c
     cdef ParserState state = BEGIN_SPACE
 
@@ -1208,7 +1207,10 @@ cdef tuple _parse_fraction(AnyString s):
     cdef ullong igcd
     cdef object num = None, decimal, denom
 
-    for i, c in enumerate(s):
+    pos = 0
+    while pos < s_len:
+        c = s[pos]
+        pos += 1
         udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
         if udigit <= 9:
             digit = <int>udigit
@@ -1221,7 +1223,7 @@ cdef tuple _parse_fraction(AnyString s):
                 else:
                     _raise_invalid_input(s)
                 state = DENOM_START
-                continue
+                break
             elif c == u'.':
                 if state in (BEGIN_SPACE, BEGIN_SIGN):
                     state = START_DECIMAL_DOT
@@ -1231,26 +1233,20 @@ cdef tuple _parse_fraction(AnyString s):
                     state = DECIMAL_DOT
                 else:
                     _raise_invalid_input(s)
-                continue
+                break
             elif c in u'eE':
-                if state in (SMALL_NUM, SMALL_DECIMAL_DOT, SMALL_DECIMAL):
+                if state == SMALL_NUM:
                     num = inum
-                elif state in (NUM, DECIMAL_DOT, DECIMAL):
+                elif state == NUM:
                     pass
                 else:
                     _raise_invalid_input(s)
                 state = EXP_E
-                continue
+                break
             elif c in u'-+':
                 if state == BEGIN_SPACE:
                     is_neg = c == u'-'
                     state = BEGIN_SIGN
-                elif state == EXP_E:
-                    exp_is_neg = c == u'-'
-                    state = EXP_SIGN
-                elif state == DENOM_START:
-                    is_neg ^= (c == u'-')
-                    state = DENOM_SIGN
                 else:
                     _raise_invalid_input(s)
                 continue
@@ -1259,40 +1255,24 @@ cdef tuple _parse_fraction(AnyString s):
                     state = SMALL_NUM_US
                 elif state == NUM:
                     state = NUM_US
-                elif state == SMALL_DECIMAL:
-                    state = SMALL_DECIMAL_US
-                elif state == DECIMAL:
-                    state = DECIMAL_US
-                elif state == EXP:
-                    state = EXP_US
-                elif state == SMALL_DENOM:
-                    state = SMALL_DENOM_US
-                elif state == DENOM:
-                    state = DENOM_US
                 else:
                     _raise_invalid_input(s)
                 continue
             else:
                 if c.isspace():
-                    if state in (BEGIN_SPACE, NUM_SPACE, END_SPACE, SMALL_END_SPACE, DENOM_START, DENOM_SPACE):
-                        pass
+                    while pos < s_len:
+                        c = s[pos]
+                        if not c.isspace():
+                            break
+                        pos += 1
+
+                    if state in (BEGIN_SPACE, NUM_SPACE):
+                        continue
                     elif state == SMALL_NUM:
                         num = inum
                         state = NUM_SPACE
                     elif state == NUM:
                         state = NUM_SPACE
-                    elif state in (SMALL_DECIMAL, SMALL_DECIMAL_DOT):
-                        num = inum
-                        state = SMALL_END_SPACE
-                    elif state in (DECIMAL, DECIMAL_DOT):
-                        state = END_SPACE
-                    elif state == EXP:
-                        state = END_SPACE
-                    elif state == SMALL_DENOM:
-                        denom = idenom
-                        state = DENOM_SPACE
-                    elif state == DENOM:
-                        state = DENOM_SPACE
                     else:
                         _raise_invalid_input(s)
                     continue
@@ -1312,34 +1292,227 @@ cdef tuple _parse_fraction(AnyString s):
         elif state in (NUM, NUM_US):
             num = num * 10 + digit
             state = NUM
-        elif state in (START_DECIMAL_DOT, SMALL_DECIMAL_DOT, SMALL_DECIMAL, SMALL_DECIMAL_US):
-            decimal_len += 1
-            inum = inum * 10 + digit
-            state = SMALL_DECIMAL
-            # 2^n > 10^(n * 5/17)
-            if inum > MAX_SMALL_NUMBER or decimal_len >= <Py_ssize_t>(sizeof(idenom) * 8) * 5 // 17:
-                num = inum
-                state = DECIMAL
-        elif state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
-            decimal_len += 1
-            num = num * 10 + digit
-            state = DECIMAL
-        elif state in (EXP_E, EXP_SIGN, EXP, EXP_US):
-            iexp = iexp * 10 + digit
-            if iexp > MAX_SMALL_NUMBER:
-                _raise_parse_overflow(s)
-            state = EXP
-        elif state in (DENOM_START, DENOM_SIGN, SMALL_DENOM, SMALL_DENOM_US):
-            idenom = idenom * 10 + digit
-            state = SMALL_DENOM
-            if idenom > MAX_SMALL_NUMBER:
-                denom = idenom
-                state = DENOM
-        elif state in (DENOM, DENOM_US):
-            denom = denom * 10 + digit
-            state = DENOM
         else:
             _raise_invalid_input(s)
+
+    if state == DENOM_START:
+        # NUM '/'  |  SMALL_NUM '/'
+        while pos < s_len:
+            c = s[pos]
+            if not c.isspace():
+                break
+            pos += 1
+
+        while pos < s_len:
+            c = s[pos]
+            pos += 1
+            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
+            if udigit <= 9:
+                digit = <int>udigit
+            else:
+                if c in u'-+':
+                    if state == DENOM_START:
+                        is_neg ^= (c == u'-')
+                        state = DENOM_SIGN
+                    else:
+                        _raise_invalid_input(s)
+                    continue
+                elif c == u'_':
+                    if state == SMALL_DENOM:
+                        state = SMALL_DENOM_US
+                    elif state == DENOM:
+                        state = DENOM_US
+                    else:
+                        _raise_invalid_input(s)
+                    continue
+                else:
+                    if c.isspace():
+                        while pos < s_len:
+                            c = s[pos]
+                            if not c.isspace():
+                                break
+                            pos += 1
+
+                        if state in (DENOM_START, DENOM_SPACE):
+                            pass
+                        elif state == SMALL_DENOM:
+                            denom = idenom
+                            state = DENOM_SPACE
+                        elif state == DENOM:
+                            state = DENOM_SPACE
+                        else:
+                            _raise_invalid_input(s)
+                        continue
+
+                digit = Py_UNICODE_TODECIMAL(c)
+                if digit == -1:
+                    _raise_invalid_input(s)
+                    continue
+
+            # normal digit found
+            if state in (DENOM_START, DENOM_SIGN, SMALL_DENOM, SMALL_DENOM_US):
+                idenom = idenom * 10 + digit
+                state = SMALL_DENOM
+                if idenom > MAX_SMALL_NUMBER:
+                    denom = idenom
+                    state = DENOM
+            elif state in (DENOM, DENOM_US):
+                denom = denom * 10 + digit
+                state = DENOM
+            else:
+                _raise_invalid_input(s)
+
+    elif state in  (SMALL_DECIMAL_DOT, START_DECIMAL_DOT):
+        # SMALL_NUM '.'  | '.'
+        while pos < s_len:
+            c = s[pos]
+            pos += 1
+            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
+            if udigit <= 9:
+                digit = <int>udigit
+            else:
+                if c == u'_':
+                    if state == SMALL_DECIMAL:
+                        state = SMALL_DECIMAL_US
+                    else:
+                        _raise_invalid_input(s)
+                    continue
+                elif c in u'eE':
+                    if state in (SMALL_DECIMAL_DOT, SMALL_DECIMAL):
+                        num = inum
+                    else:
+                        _raise_invalid_input(s)
+                    state = EXP_E
+                    break
+                else:
+                    if c.isspace():
+                        while pos < s_len:
+                            c = s[pos]
+                            if not c.isspace():
+                                break
+                            pos += 1
+
+                        if state in (SMALL_DECIMAL, SMALL_DECIMAL_DOT):
+                            num = inum
+                            state = SMALL_END_SPACE
+                        else:
+                            _raise_invalid_input(s)
+                        continue
+
+                digit = Py_UNICODE_TODECIMAL(c)
+                if digit == -1:
+                    _raise_invalid_input(s)
+                    continue
+
+            # normal digit found
+            if state in (START_DECIMAL_DOT, SMALL_DECIMAL_DOT, SMALL_DECIMAL, SMALL_DECIMAL_US):
+                decimal_len += 1
+                inum = inum * 10 + digit
+                state = SMALL_DECIMAL
+                # 2^n > 10^(n * 5/17)
+                if inum > MAX_SMALL_NUMBER or decimal_len >= <Py_ssize_t>(sizeof(idenom) * 8) * 5 // 17:
+                    num = inum
+                    state = DECIMAL
+                    break
+            else:
+                _raise_invalid_input(s)
+
+    if state in (DECIMAL_DOT, DECIMAL):
+        # NUM '.'  |  SMALL_DECIMAL->DECIMAL
+        while pos < s_len:
+            c = s[pos]
+            pos += 1
+            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
+            if udigit <= 9:
+                digit = <int>udigit
+            else:
+                if c == u'_':
+                    if state == DECIMAL:
+                        state = DECIMAL_US
+                    else:
+                        _raise_invalid_input(s)
+                    continue
+                elif c in u'eE':
+                    if state in (DECIMAL_DOT, DECIMAL):
+                        pass
+                    else:
+                        _raise_invalid_input(s)
+                    state = EXP_E
+                    break
+                else:
+                    if c.isspace():
+                        if state in (DECIMAL, DECIMAL_DOT):
+                            state = END_SPACE
+                        else:
+                            _raise_invalid_input(s)
+                        break
+
+                digit = Py_UNICODE_TODECIMAL(c)
+                if digit == -1:
+                    _raise_invalid_input(s)
+                    continue
+
+            # normal digit found
+            if state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
+                decimal_len += 1
+                num = num * 10 + digit
+                state = DECIMAL
+            else:
+                _raise_invalid_input(s)
+
+    if state == EXP_E:
+        # (SMALL_) NUM ['.' DECIMAL] 'E'
+        while pos < s_len:
+            c = s[pos]
+            pos += 1
+            udigit = (<unsigned int>c) - <unsigned int>'0'  # Relies on integer underflow for dots etc.
+            if udigit <= 9:
+                digit = <int>udigit
+            else:
+                if c in u'-+':
+                    if state == EXP_E:
+                        exp_is_neg = c == u'-'
+                        state = EXP_SIGN
+                    else:
+                        _raise_invalid_input(s)
+                    continue
+                elif c == u'_':
+                    if state == EXP:
+                        state = EXP_US
+                    else:
+                        _raise_invalid_input(s)
+                    continue
+                else:
+                    if c.isspace():
+                        if state == EXP:
+                            state = END_SPACE
+                        else:
+                            _raise_invalid_input(s)
+                        break
+
+                digit = Py_UNICODE_TODECIMAL(c)
+                if digit == -1:
+                    _raise_invalid_input(s)
+                    continue
+
+            # normal digit found
+            if state in (EXP_E, EXP_SIGN, EXP, EXP_US):
+                iexp = iexp * 10 + digit
+                if iexp > MAX_SMALL_NUMBER:
+                    _raise_parse_overflow(s)
+                state = EXP
+            else:
+                _raise_invalid_input(s)
+
+    if state in (END_SPACE, SMALL_END_SPACE, DENOM_SPACE):
+        while pos < s_len:
+            c = s[pos]
+            if not c.isspace():
+                break
+            pos += 1
+
+    if pos < s_len :
+        _raise_invalid_input(s)
 
     is_normalised = False
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
