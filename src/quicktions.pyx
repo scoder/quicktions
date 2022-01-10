@@ -51,7 +51,7 @@ cdef object _operator_index = operator.index
 
 
 # Cache widely used 10**x int objects.
-DEF CACHED_POW10 = 58  # sys.getsizeof(tuple[58]) == 512 bytes  in Py3.7
+DEF CACHED_POW10 = 62  # sys.getsizeof(tuple[58]) == 512 bytes  in Py3.7
 
 cdef tuple _cache_pow10():
     cdef int i
@@ -272,13 +272,15 @@ cdef class Fraction:
                 return
 
             elif isinstance(numerator, unicode):
-                numerator, denominator, is_normalised = _parse_fraction(<unicode>numerator)
+                numerator, denominator, is_normalised = _parse_fraction(
+                    <unicode>numerator, len(<unicode>numerator))
                 if is_normalised:
                     _normalize = False
                 # fall through to normalisation below
 
             elif PY_MAJOR_VERSION < 3 and isinstance(numerator, bytes):
-                numerator, denominator, is_normalised = _parse_fraction(<bytes>numerator)
+                numerator, denominator, is_normalised = _parse_fraction(
+                    <bytes>numerator, len(<bytes>numerator))
                 if is_normalised:
                     _normalize = False
                 # fall through to normalisation below
@@ -1145,9 +1147,11 @@ cdef reverse(a, b, math_func monomorphic_operator, pyoperator):
         return NotImplemented
 
 
+ctypedef char* charptr
+
 ctypedef fused AnyString:
-    bytes
     unicode
+    charptr
 
 
 cdef enum ParserState:
@@ -1185,26 +1189,66 @@ cdef enum ParserState:
 
 
 cdef _raise_invalid_input(s):
-    raise ValueError(f'Invalid literal for Fraction: {s!r}') from None
+    s = repr(s)
+    if s[0] == 'b':
+        s = s[1:]
+    raise ValueError(f'Invalid literal for Fraction: {s}') from None
 
 
 cdef _raise_parse_overflow(s):
-    raise OverflowError(f"Exponent too large for Fraction: {s!r}") from None
+    s = repr(s)
+    if s[0] == 'b':
+        s = s[1:]
+    raise OverflowError(f"Exponent too large for Fraction: {s!s}") from None
 
 
-cdef inline int _parse_digit(Py_UCS4 c):
+cdef inline int _parse_digit(Py_UCS4 c, int allow_unicode):
     cdef unsigned int udigit
     udigit = (<unsigned int> c) - <unsigned int> '0'  # Relies on integer underflow for dots etc.
     if udigit > 9:
-        return Py_UNICODE_TODECIMAL(c)
+        return Py_UNICODE_TODECIMAL(c) if allow_unicode else -1
     return <int> udigit
 
 
-cdef tuple _parse_fraction(AnyString s):
+cdef extern from *:
+    """
+    static CYTHON_INLINE int __QUICKTIONS_unpack_string(
+            PyObject* string, Py_ssize_t *length, void** data, int *kind) {
+        if (PyBytes_Check(string)) {
+            *kind   = 1;
+            *length = PyBytes_GET_SIZE(string);
+            *data   = PyBytes_AS_STRING(string);
+        } else {
+        #if CYTHON_PEP393_ENABLED
+            if (PyUnicode_READY(string) < 0) return -1;
+            *kind   = PyUnicode_KIND(string);
+            *length = PyUnicode_GET_LENGTH(string);
+            *data   = PyUnicode_DATA(string);
+        #else
+            *kind   = 0;
+            *length = PyUnicode_GET_SIZE(string);
+            *data   = (void*)PyUnicode_AS_UNICODE(string);
+        #endif
+        }
+        return 0;
+    }
+    #if PY_MAJOR_VERSION < 3
+    #define PyUnicode_READ(k, d, i) ((Py_UCS4) ((Py_UNICODE*) d) [i])
+    #endif
+    #define __QUICKTIONS_char_at(data, kind, index) \
+        (((kind == 1) ? (Py_UCS4) ((char*) data)[index] : (Py_UCS4) PyUnicode_READ(kind, data, index)))
+    """
+    int _unpack_string "__QUICKTIONS_unpack_string" (
+        object string, Py_ssize_t *length, void **data, int *kind) except -1
+    Py_UCS4 _char_at "__QUICKTIONS_char_at" (void *data, int kind, Py_ssize_t index)
+    Py_UCS4 PyUnicode_READ(int kind, void *data, Py_ssize_t index)
+
+
+cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
     """
     Parse a string into a number tuple: (numerator, denominator, is_normalised)
     """
-    cdef Py_ssize_t pos, start_pos, decimal_len = 0, s_len = len(s)
+    cdef Py_ssize_t pos, start_pos, decimal_len = 0
     cdef Py_UCS4 c
     cdef ParserState state = BEGIN_SPACE
 
@@ -1217,11 +1261,26 @@ cdef tuple _parse_fraction(AnyString s):
     # 2^n > 10^(n * 5/17)
     cdef Py_ssize_t max_decimal_len = <Py_ssize_t> (sizeof(inum) * 8) * 5 // 17
 
+    # Incremental Unicode iteration isn't in Cython yet.
+    cdef int allow_unicode = AnyString is unicode
+    cdef int s_kind = 1
+    cdef void* s_data = NULL
+    cdef char* cdata = NULL
+
+    if AnyString is unicode:
+        _unpack_string(s, &s_len, &s_data, &s_kind)
+        if s_kind == 1:
+            return _parse_fraction(<char*> s_data, s_len)
+        cdata = <char*> s_data
+        cdata += 0  # mark used
+    else:
+        cdata = s
+
     pos = 0
     while pos < s_len:
-        c = s[pos]
+        c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
         pos += 1
-        digit = _parse_digit(c)
+        digit = _parse_digit(c, allow_unicode)
         if digit == -1:
             if c == u'/':
                 if state == SMALL_NUM:
@@ -1269,7 +1328,7 @@ cdef tuple _parse_fraction(AnyString s):
             else:
                 if c.isspace():
                     while pos < s_len:
-                        c = s[pos]
+                        c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
                         if not c.isspace():
                             break
                         pos += 1
@@ -1295,8 +1354,8 @@ cdef tuple _parse_fraction(AnyString s):
 
             # fast-path for consecutive digits
             while pos < s_len and inum <= MAX_SMALL_NUMBER:
-                c = s[pos]
-                digit = _parse_digit(c)
+                c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
+                digit = _parse_digit(c, allow_unicode)
                 if digit == -1:
                     break
                 inum = inum * 10 + digit
@@ -1306,36 +1365,33 @@ cdef tuple _parse_fraction(AnyString s):
                 num = inum
                 state = NUM
         elif state in (NUM, NUM_US):
-            num = num * 10 + digit
             state = NUM
-
             # fast-path for consecutive digits
-            inum = 0
             start_pos = pos
+            inum = digit
             while pos < s_len and inum <= MAX_SMALL_NUMBER:
-                c = s[pos]
-                digit = _parse_digit(c)
+                c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
+                digit = _parse_digit(c, allow_unicode)
                 if digit == -1:
                     break
                 inum = inum * 10 + digit
                 pos += 1
-            if pos > start_pos:
-                num = num * pow10(pos - start_pos) + inum
+            num = num * pow10(pos - start_pos + 1) + inum
         else:
             _raise_invalid_input(s)
 
     if state == DENOM_START:
         # NUM '/'  |  SMALL_NUM '/'
         while pos < s_len:
-            c = s[pos]
+            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
             if not c.isspace():
                 break
             pos += 1
 
         while pos < s_len:
-            c = s[pos]
+            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
             pos += 1
-            digit = _parse_digit(c)
+            digit = _parse_digit(c, allow_unicode)
             if digit == -1:
                 if c in u'-+':
                     if state == DENOM_START:
@@ -1355,7 +1411,7 @@ cdef tuple _parse_fraction(AnyString s):
                 else:
                     if c.isspace():
                         while pos < s_len:
-                            c = s[pos]
+                            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
                             if not c.isspace():
                                 break
                             pos += 1
@@ -1381,8 +1437,8 @@ cdef tuple _parse_fraction(AnyString s):
 
                 # fast-path for consecutive digits
                 while pos < s_len and idenom <= MAX_SMALL_NUMBER:
-                    c = s[pos]
-                    digit = _parse_digit(c)
+                    c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
+                    digit = _parse_digit(c, allow_unicode)
                     if digit == -1:
                         break
                     idenom = idenom * 10 + digit
@@ -1392,30 +1448,27 @@ cdef tuple _parse_fraction(AnyString s):
                     denom = idenom
                     state = DENOM
             elif state in (DENOM, DENOM_US):
-                denom = denom * 10 + digit
                 state = DENOM
-
                 # fast-path for consecutive digits
-                idenom = 0
                 start_pos = pos
+                idenom = digit
                 while pos < s_len and idenom <= MAX_SMALL_NUMBER:
-                    c = s[pos]
-                    digit = _parse_digit(c)
+                    c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
+                    digit = _parse_digit(c, allow_unicode)
                     if digit == -1:
                         break
                     idenom = idenom * 10 + digit
                     pos += 1
-                if pos > start_pos:
-                    denom = denom * pow10(pos - start_pos) + idenom
+                denom = denom * pow10(pos - start_pos + 1) + idenom
             else:
                 _raise_invalid_input(s)
 
     elif state in (SMALL_DECIMAL_DOT, START_DECIMAL_DOT):
         # SMALL_NUM '.'  | '.'
         while pos < s_len:
-            c = s[pos]
+            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
             pos += 1
-            digit = _parse_digit(c)
+            digit = _parse_digit(c, allow_unicode)
             if digit == -1:
                 if c == u'_':
                     if state == SMALL_DECIMAL:
@@ -1433,7 +1486,7 @@ cdef tuple _parse_fraction(AnyString s):
                 else:
                     if c.isspace():
                         while pos < s_len:
-                            c = s[pos]
+                            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
                             if not c.isspace():
                                 break
                             pos += 1
@@ -1456,8 +1509,8 @@ cdef tuple _parse_fraction(AnyString s):
 
                 # fast-path for consecutive digits
                 while pos < s_len and inum <= MAX_SMALL_NUMBER and decimal_len < max_decimal_len:
-                    c = s[pos]
-                    digit = _parse_digit(c)
+                    c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
+                    digit = _parse_digit(c, allow_unicode)
                     if digit == -1:
                         break
                     inum = inum * 10 + digit
@@ -1474,9 +1527,9 @@ cdef tuple _parse_fraction(AnyString s):
     if state in (DECIMAL_DOT, DECIMAL):
         # NUM '.'  |  SMALL_DECIMAL->DECIMAL
         while pos < s_len:
-            c = s[pos]
+            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
             pos += 1
-            digit = _parse_digit(c)
+            digit = _parse_digit(c, allow_unicode)
             if digit == -1:
                 if c == u'_':
                     if state == DECIMAL:
@@ -1504,32 +1557,30 @@ cdef tuple _parse_fraction(AnyString s):
 
             # normal digit found
             if state in (DECIMAL_DOT, DECIMAL, DECIMAL_US):
-                num = num * 10 + digit
-                decimal_len += 1
                 state = DECIMAL
+                decimal_len += 1
 
                 # fast-path for consecutive digits
-                inum = 0
                 start_pos = pos
+                inum = digit
                 while pos < s_len and inum <= MAX_SMALL_NUMBER:
-                    c = s[pos]
-                    digit = _parse_digit(c)
+                    c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
+                    digit = _parse_digit(c, allow_unicode)
                     if digit == -1:
                         break
                     inum = inum * 10 + digit
                     decimal_len += 1
                     pos += 1
-                if pos > start_pos:
-                    num = num * pow10(pos - start_pos) + inum
+                num = num * pow10(pos - start_pos + 1) + inum
             else:
                 _raise_invalid_input(s)
 
     if state == EXP_E:
         # (SMALL_) NUM ['.' DECIMAL] 'E'
         while pos < s_len:
-            c = s[pos]
+            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
             pos += 1
-            digit = _parse_digit(c)
+            digit = _parse_digit(c, allow_unicode)
             if digit == -1:
                 if c in u'-+':
                     if state == EXP_E:
@@ -1562,8 +1613,8 @@ cdef tuple _parse_fraction(AnyString s):
 
                 # fast-path for consecutive digits
                 while pos < s_len and iexp <= MAX_SMALL_NUMBER:
-                    c = s[pos]
-                    digit = _parse_digit(c)
+                    c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
+                    digit = _parse_digit(c, allow_unicode)
                     if digit == -1:
                         break
                     iexp = iexp * 10 + digit
@@ -1576,7 +1627,7 @@ cdef tuple _parse_fraction(AnyString s):
 
     if state in (END_SPACE, SMALL_END_SPACE, DENOM_SPACE):
         while pos < s_len:
-            c = s[pos]
+            c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
             if not c.isspace():
                 break
             pos += 1
