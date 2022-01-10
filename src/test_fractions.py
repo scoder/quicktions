@@ -1035,6 +1035,30 @@ class QuicktionsTest(unittest.TestCase):
             self.assertEqual(ff.numerator, qf.numerator)
             self.assertEqual(ff.denominator, qf.denominator)
 
+    def test_large_values(self):
+        values = [
+            "1" + "0" * 997 + "2/2" + "0" * 997 + "1",
+            "1" + "0" * 1000 + "2/2" + "0" * 1000 + "1",
+            "1" + "0" * 997 + "2/2" + "0" * 997 + "4",
+            "1" + "0" * 1000 + "2/2" + "0" * 1000 + "4",
+            "1" + "0001002" * 500 + "2/2" + "0002001" * 500 + "1",
+         ] + ["%s/%s" % (n**a, n**b) for n in range(2, 213, 7) for a, b in [
+            (58, 64),
+            (63, 64),
+            (64, 70),
+            (128, 511),
+        ]]
+        values = [
+            v for value in values
+            for v in ([value, value.replace('/', '.'), value.replace('/', '.') + "E" + value[:4]]
+                      if '/' in value else [value])
+        ]
+        for value in values:
+            f = F(value)
+            pyf = fractions.Fraction(value)
+            self.assertEqual(f, pyf, value)
+
+
 
 def _gen_fuzzer_values():
     numbers = [2, 3, 6, 11, 53, 64, 127, 99991]
