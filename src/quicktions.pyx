@@ -52,7 +52,7 @@ cdef object _operator_index = operator.index
 
 
 # Cache widely used 10**x int objects.
-DEF CACHED_POW10 = 62  # sys.getsizeof(tuple[58]) == 512 bytes  in Py3.7
+DEF CACHED_POW10 = 64  # sys.getsizeof(tuple[58]) == 512 bytes  in Py3.7
 
 cdef tuple _cache_pow10():
     cdef int i
