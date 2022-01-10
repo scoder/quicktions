@@ -66,7 +66,7 @@ cdef tuple _cache_pow10():
 cdef tuple POW_10 = _cache_pow10()
 
 
-cdef pow10(Py_ssize_t i):
+cdef pow10(long long i):
     if 0 <= i < CACHED_POW10:
         return POW_10[i]
     else:
@@ -156,9 +156,9 @@ cdef cunumber _ibgcd(cunumber a, cunumber b):
 
 cdef _py_gcd(ullong a, ullong b):
     if a <= <ullong>INT_MAX and b <= <ullong>INT_MAX:
-        return <int> _igcd[uint](a, b)
+        return <int> _igcd[uint](<uint> a, <uint> b)
     elif a <= <ullong>LONG_MAX and b <= <ullong>LONG_MAX:
-        return <long> _igcd[ulong](a, b)
+        return <long> _igcd[ulong](<ulong> a, <ulong> b)
     elif b:
         a = _igcd[ullong](a, b)
     # try PyInt downcast in Py2
@@ -645,7 +645,7 @@ cdef class Fraction:
                 return floor
             else:
                 return floor + 1
-        shift = pow10(abs(<Py_ssize_t>ndigits))
+        shift = pow10(abs(<long long>ndigits))
         # See _operator_fallbacks.forward to check that the results of
         # these operations will always be Fraction and therefore have
         # round().
