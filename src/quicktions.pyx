@@ -25,7 +25,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['Fraction']
 
-__version__ = '1.12'
+__version__ = '1.13'
 
 cimport cython
 from cpython.unicode cimport Py_UNICODE_TODECIMAL
