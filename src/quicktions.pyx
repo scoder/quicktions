@@ -56,14 +56,25 @@ DEF CACHED_POW10 = 64  # sys.getsizeof(tuple[58]) == 512 bytes  in Py3.7
 
 cdef tuple _cache_pow10():
     cdef int i
+    in_ull = True
     l = []
     x = 1
     for i in range(CACHED_POW10):
         l.append(x)
+        if in_ull:
+            try:
+                _C_POW_10[i] = x
+            except OverflowError:
+                in_ull = False
         x *= 10
     return tuple(l)
 
+cdef unsigned long long[CACHED_POW10] _C_POW_10
 cdef tuple POW_10 = _cache_pow10()
+
+
+cdef unsigned long long _c_pow10(Py_ssize_t i):
+    return _C_POW_10[i]
 
 
 cdef pow10(long long i):
@@ -1668,7 +1679,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
         # Special case for 'small' numbers: normalise directly in C space.
         if inum and decimal_len:
-            idenom = 10 ** <ullong> decimal_len
+            idenom = _c_pow10(decimal_len)
             igcd = _c_gcd(inum, idenom)
             if igcd > 1:
                 inum //= igcd
