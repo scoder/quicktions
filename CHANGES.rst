@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.13 (2022-01-10)
+1.13 (2022-01-11)
 -----------------
 
 * Parsing very long numbers from a fraction string was very slow, even slower
