@@ -284,7 +284,7 @@ def bm_pidigits(pi_string=PI_DIGITS, classes=classes):
         yield (cls, results)
 
 
-def bm_instantiation(values=benchmark_values, classes=classes):
+def bm_create(values=benchmark_values, classes=classes):
     gns = {}
     for cls in classes:
         cls_name = cls.__name__
@@ -314,7 +314,7 @@ def bm_calculation(expressions=benchmark_expressions, values=benchmark_values, c
 
 def run_benchmarks():
     for what, bm in [
-        ('create', bm_instantiation()),
+        ('create', bm_create()),
         ('compute', bm_calculation()),
         ('pidigits', bm_pidigits()),
     ]:
