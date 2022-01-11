@@ -167,6 +167,15 @@ cdef _py_gcd(ullong a, ullong b):
     return a
 
 
+cdef ullong _c_gcd(ullong a, ullong b):
+    if a <= <ullong>INT_MAX and b <= <ullong>INT_MAX:
+        return _igcd[uint](<uint> a, <uint> b)
+    elif a <= <ullong>LONG_MAX and b <= <ullong>LONG_MAX:
+        return _igcd[ulong](<ulong> a, <ulong> b)
+    else:
+        return _igcd[ullong](a, b)
+
+
 cdef _gcd_fallback(a, b):
     """Fallback GCD implementation if _PyLong_GCD() is not available.
     """
@@ -1660,7 +1669,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
         # Special case for 'small' numbers: normalise directly in C space.
         if inum and decimal_len:
             idenom = 10 ** <ullong> decimal_len
-            igcd = _igcd[ullong](inum, idenom)
+            igcd = _c_gcd(inum, idenom)
             if igcd > 1:
                 inum //= igcd
                 denom = idenom // igcd
