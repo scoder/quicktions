@@ -1660,7 +1660,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
         # Special case for 'small' numbers: normalise directly in C space.
         if inum and decimal_len:
             idenom = 10 ** decimal_len
-            igcd = _ibgcd[ullong](inum, idenom)
+            igcd = _igcd[ullong](inum, idenom)
             if igcd > 1:
                 inum //= igcd
                 denom = idenom // igcd
