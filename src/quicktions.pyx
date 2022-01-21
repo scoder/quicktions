@@ -1679,11 +1679,15 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
         # Special case for 'small' numbers: normalise directly in C space.
         if inum and decimal_len:
-            idenom = _c_pow10(decimal_len)
-            igcd = _c_gcd(inum, idenom)
-            if igcd > 1:
-                inum //= igcd
-                denom = idenom // igcd
+            # Only need to normalise if the numerator contains factors of a power of 10 (2 or 5).
+            if inum & 1 == 0 or inum % 5 == 0:
+                idenom = _c_pow10(decimal_len)
+                igcd = _c_gcd(inum, idenom)
+                if igcd > 1:
+                    inum //= igcd
+                    denom = idenom // igcd
+                else:
+                    denom = pow10(decimal_len)
             else:
                 denom = pow10(decimal_len)
         else:
