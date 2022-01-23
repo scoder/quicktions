@@ -1282,6 +1282,7 @@ cdef inline object _parse_pylong(char* c_digits_start, char** c_digits_end):
     return py_number
 
 
+@cython.cdivision(True)
 cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
     """
     Parse a string into a number tuple: (numerator, denominator, is_normalised)
