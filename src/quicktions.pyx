@@ -1718,12 +1718,14 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
         iexp = -iexp
     iexp -= decimal_len
 
-    if is_neg:
-        num = -num
     if iexp > 0:
         num *= pow10(iexp)
     elif iexp < 0:
-        is_normalised = False
+        # Only need to normalise if the numerator contains factors of a power of 10 (2 or 5).
+        is_normalised = num & 1 and num % 5
         denom = pow10(-iexp)
+
+    if is_neg:
+        num = -num
 
     return num, denom, is_normalised
