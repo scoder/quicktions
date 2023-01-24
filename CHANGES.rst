@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+1.14 (2022-01-11)
+-----------------
+
+* Implement ``__format__`` for ``Fraction``, following
+  https://github.com/python/cpython/pull/100161
+
 1.13 (2022-01-11)
 -----------------
 

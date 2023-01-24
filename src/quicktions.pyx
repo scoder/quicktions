@@ -38,13 +38,14 @@ cdef extern from *:
     cdef long long PY_LLONG_MIN, PY_LLONG_MAX
     cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
-cdef object Rational, Integral, Real, Complex, Decimal, math, operator, sys
+cdef object Rational, Integral, Real, Complex, Decimal, math, operator, re, sys
 cdef object PY_MAX_LONG_LONG = PY_LLONG_MAX
 
 from numbers import Rational, Integral, Real, Complex
 from decimal import Decimal
 import math
 import operator
+import re
 import sys
 
 cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
@@ -235,6 +236,99 @@ try:
     _PyHASH_INF = sys.hash_info.inf
 except AttributeError:  # pre Py3.2
     _PyHASH_INF = hash(float('+inf'))
+
+
+# Helpers for formatting
+
+cdef _round_to_exponent(n, d, exponent, bint no_neg_zero=False):
+    """Round a rational number to the nearest multiple of a given power of 10.
+
+    Rounds the rational number n/d to the nearest integer multiple of
+    10**exponent, rounding to the nearest even integer multiple in the case of
+    a tie. Returns a pair (sign: bool, significand: int) representing the
+    rounded value (-1)**sign * significand * 10**exponent.
+
+    If no_neg_zero is true, then the returned sign will always be False when
+    the significand is zero. Otherwise, the sign reflects the sign of the
+    input.
+
+    d must be positive, but n and d need not be relatively prime.
+    """
+    if exponent >= 0:
+        d *= 10**exponent
+    else:
+        n *= 10**-exponent
+
+    # The divmod quotient is correct for round-ties-towards-positive-infinity;
+    # In the case of a tie, we zero out the least significant bit of q.
+    q, r = divmod(n + (d >> 1), d)
+    if r == 0 and d & 1 == 0:
+        q &= -2
+
+    cdef bint sign = q < 0 if no_neg_zero else n < 0
+    return sign, abs(q)
+
+
+cdef _round_to_figures(n, d, Py_ssize_t figures):
+    """Round a rational number to a given number of significant figures.
+
+    Rounds the rational number n/d to the given number of significant figures
+    using the round-ties-to-even rule, and returns a triple
+    (sign: bool, significand: int, exponent: int) representing the rounded
+    value (-1)**sign * significand * 10**exponent.
+
+    In the special case where n = 0, returns a significand of zero and
+    an exponent of 1 - figures, for compatibility with formatting.
+    Otherwise, the returned significand satisfies
+    10**(figures - 1) <= significand < 10**figures.
+
+    d must be positive, but n and d need not be relatively prime.
+    figures must be positive.
+    """
+    # Special case for n == 0.
+    if n == 0:
+        return False, 0, 1 - figures
+
+    cdef bint sign
+
+    # Find integer m satisfying 10**(m - 1) <= abs(n)/d <= 10**m. (If abs(n)/d
+    # is a power of 10, either of the two possible values for m is fine.)
+    str_n, str_d = str(abs(n)), str(d)
+    cdef Py_ssize_t m = len(str_n) - len(str_d) + (str_d <= str_n)
+
+    # Round to a multiple of 10**(m - figures). The significand we get
+    # satisfies 10**(figures - 1) <= significand <= 10**figures.
+    exponent = m - figures
+    sign, significand = _round_to_exponent(n, d, exponent)
+
+    # Adjust in the case where significand == 10**figures, to ensure that
+    # 10**(figures - 1) <= significand < 10**figures.
+    if len(str(significand)) == figures + 1:
+        significand //= 10
+        exponent += 1
+
+    return sign, significand, exponent
+
+
+# Pattern for matching float-style format specifications;
+# supports 'e', 'E', 'f', 'F', 'g', 'G' and '%' presentation types.
+cdef object _FLOAT_FORMAT_SPECIFICATION_MATCHER = re.compile(r"""
+    (?:
+        (?P<fill>.)?
+        (?P<align>[<>=^])
+    )?
+    (?P<sign>[-+ ]?)
+    (?P<no_neg_zero>z)?
+    (?P<alt>\#)?
+    # A '0' that's *not* followed by another digit is parsed as a minimum width
+    # rather than a zeropad flag.
+    (?P<zeropad>0(?=[0-9]))?
+    (?P<minimumwidth>0|[1-9][0-9]*)?
+    (?P<thousands_sep>[,_])?
+    (?:\.(?P<precision>0|[1-9][0-9]*))?
+    (?P<presentation_type>[eEfFgG%])
+    $
+""", re.DOTALL | re.VERBOSE).match
 
 
 cdef class Fraction:
@@ -495,8 +589,131 @@ cdef class Fraction:
         """str(self)"""
         if self._denominator == 1:
             return str(self._numerator)
+        elif PY_MAJOR_VERSION > 2:
+            return f'{self._numerator}/{self._denominator}'
         else:
             return '%s/%s' % (self._numerator, self._denominator)
+
+    def __format__(self, format_spec, /):
+        """Format this fraction according to the given format specification."""
+
+        # Backwards compatibility with existing formatting.
+        if not format_spec:
+            return str(self)
+
+        # Validate and parse the format specifier.
+        match = _FLOAT_FORMAT_SPECIFICATION_MATCHER(format_spec)
+        if match is None:
+            raise ValueError(
+                f"Invalid format specifier {format_spec!r} "
+                f"for object of type {type(self).__name__!r}"
+            )
+        match = match.groupdict()  # Py2
+        if match["align"] is not None and match["zeropad"] is not None:
+            # Avoid the temptation to guess.
+            raise ValueError(
+                f"Invalid format specifier {format_spec!r} "
+                f"for object of type {type(self).__name__!r}; "
+                "can't use explicit alignment when zero-padding"
+            )
+        fill = match["fill"] or " "
+        align = match["align"] or ">"
+        pos_sign = "" if match["sign"] == "-" else match["sign"]
+        cdef bint no_neg_zero = match["no_neg_zero"]
+        cdef bint alternate_form = match["alt"]
+        cdef bint zeropad = match["zeropad"]
+        cdef Py_ssize_t minimumwidth = int(match["minimumwidth"] or "0")
+        thousands_sep = match["thousands_sep"]
+        cdef Py_ssize_t precision = int(match["precision"] or "6")
+        cdef Py_UCS4 presentation_type = ord(match["presentation_type"])
+        cdef bint trim_zeros = presentation_type in u"gG" and not alternate_form
+        cdef bint trim_point = not alternate_form
+        exponent_indicator = "E" if presentation_type in u"EFG" else "e"
+
+        cdef bint negative, scientific
+        cdef Py_ssize_t exponent, figures
+
+        # Round to get the digits we need, figure out where to place the point,
+        # and decide whether to use scientific notation. 'point_pos' is the
+        # relative to the _end_ of the digit string: that is, it's the number
+        # of digits that should follow the point.
+        if presentation_type in u"fF%":
+            exponent = -precision
+            if presentation_type == u"%":
+                exponent -= 2
+            negative, significand = _round_to_exponent(
+                self._numerator, self._denominator, exponent, no_neg_zero)
+            scientific = False
+            point_pos = precision
+        else:  # presentation_type in "eEgG"
+            figures = (
+                max(precision, 1)
+                if presentation_type in u"gG"
+                else precision + 1
+            )
+            negative, significand, exponent = _round_to_figures(
+                self._numerator, self._denominator, figures)
+            scientific = (
+                presentation_type in u"eE"
+                or exponent > 0
+                or exponent + figures <= -4
+            )
+            point_pos = figures - 1 if scientific else -exponent
+
+        # Get the suffix - the part following the digits, if any.
+        if presentation_type == u"%":
+            suffix = "%"
+        elif scientific:
+            #suffix = f"{exponent_indicator}{exponent + point_pos:+03d}"
+            suffix = "%s%+03d" % (exponent_indicator, exponent + point_pos)
+        else:
+            suffix = ""
+
+        # String of output digits, padded sufficiently with zeros on the left
+        # so that we'll have at least one digit before the decimal point.
+        digits = f"{significand:0{point_pos + 1}d}"
+
+        # Before padding, the output has the form f"{sign}{leading}{trailing}",
+        # where `leading` includes thousands separators if necessary and
+        # `trailing` includes the decimal separator where appropriate.
+        sign = "-" if negative else pos_sign
+        leading = digits[: len(digits) - point_pos]
+        frac_part = digits[len(digits) - point_pos :]
+        if trim_zeros:
+            frac_part = frac_part.rstrip("0")
+        separator = "" if trim_point and not frac_part else "."
+        trailing = separator + frac_part + suffix
+
+        # Do zero padding if required.
+        if zeropad:
+            min_leading = minimumwidth - len(sign) - len(trailing)
+            # When adding thousands separators, they'll be added to the
+            # zero-padded portion too, so we need to compensate.
+            leading = leading.zfill(
+                3 * min_leading // 4 + 1 if thousands_sep else min_leading
+            )
+
+        # Insert thousands separators if required.
+        if thousands_sep:
+            first_pos = 1 + (len(leading) - 1) % 3
+            leading = leading[:first_pos] + "".join([
+                thousands_sep + leading[pos : pos + 3]
+                for pos in range(first_pos, len(leading), 3)
+            ])
+
+        # We now have a sign and a body. Pad with fill character if necessary
+        # and return.
+        body = leading + trailing
+        padding = fill * (minimumwidth - len(sign) - len(body))
+        if align == ">":
+            return padding + sign + body
+        elif align == "<":
+            return sign + body + padding
+        elif align == "^":
+            half = len(padding) // 2
+            return padding[:half] + sign + body + padding[half:]
+        else:  # align == "="
+            return sign + padding + body
 
     def __add__(a, b):
         """a + b"""
@@ -1211,7 +1428,9 @@ cdef enum ParserState:
 
 cdef _raise_invalid_input(s):
     s = repr(s)
-    if s[0] == 'b':
+    if s[:2] in ('b"', "b'"):
+        s = s[1:]
+    elif PY_MAJOR_VERSION ==2 and s[:2] in ('u"', "u'"):
         s = s[1:]
     raise ValueError(f'Invalid literal for Fraction: {s}') from None
 
