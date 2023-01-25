@@ -1,11 +1,17 @@
 ChangeLog
 =========
 
-1.14 (2022-01-11)
+1.14 (2023-??-??)
 -----------------
 
 * Implement ``__format__`` for ``Fraction``, following
   https://github.com/python/cpython/pull/100161
+
+* Implement ``Fraction.is_integer()``, following
+  https://github.com/python/cpython/issues/100488
+
+* ``Fraction.limit_denominator()`` is faster, following
+  https://github.com/python/cpython/pull/93730
 
 1.13 (2022-01-11)
 -----------------
