@@ -509,6 +509,10 @@ cdef class Fraction:
         else:
             return cls(digits, pow10(-exp))
 
+    def is_integer(self):
+        """Return True if the Fraction is an integer."""
+        return self._denominator == 1
+
     def as_integer_ratio(self):
         """Return the integer ratio as a tuple.
 
