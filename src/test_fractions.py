@@ -37,6 +37,27 @@ F = quicktions.Fraction
 gcd = quicktions._gcd
 
 
+def allow_large_integers(max_size):
+    try:
+        sys.get_int_max_str_digits
+    except AttributeError:
+        return (lambda f:f)  # nothing to do, no limits
+
+    def deco(test_func):
+        @functools.wraps(test_func)
+        def guarded_func(*args, **kwargs):
+            old_max = sys.get_int_max_str_digits()
+            sys.set_int_max_str_digits(max_size)
+            try:
+                return test_func(*args, **kwargs)
+            finally:
+                sys.set_int_max_str_digits(old_max)
+
+        return guarded_func
+
+    return deco
+
+
 class DummyFloat(object):
     """Dummy float class for testing comparisons with Fractions"""
 
@@ -1434,6 +1455,7 @@ class QuicktionsTest(unittest.TestCase):
             self.assertEqual(ff.numerator, qf.numerator)
             self.assertEqual(ff.denominator, qf.denominator)
 
+    @allow_large_integers(60000)
     def test_large_values(self):
         values = [
             "123456" * 10000 + "/" + "765432" * 7777,
