@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.14 (2023-??-??)
+1.14 (2023-03-19)
 -----------------
 
 * Implement ``__format__`` for ``Fraction``, following
@@ -16,6 +16,8 @@ ChangeLog
 * Internal creation of result Fractions is about 10% faster if the calculated
   numerator/denominator pair is already normalised, following
   https://github.com/python/cpython/pull/101780
+
+* Built using Cython 3.0.0b1.
 
 
 1.13 (2022-01-11)
