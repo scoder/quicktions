@@ -28,15 +28,22 @@ force_rebuild = os.environ.get("FORCE_REBUILD") == "1"
 try:
     sys.argv.remove("--with-cython")
 except ValueError:
-    cythonize = None
-else:
+    pass  # legacy option
+
+cythonize = None
+try:
+    sys.argv.remove("--no-cython")
+except ValueError:
     try:
         from Cython.Build import cythonize
+        from Cython import __version__ as cython_version
         import Cython.Compiler.Options as cython_options
         cython_options.annotate = True
     except ImportError:
+        print("Cython not found, building without Cython")
         cythonize = None
     else:
+        print("Building with Cython %s" % cython_version)
         compiler_directives = {}
         if enable_profiling:
             compiler_directives['profile'] = True
