@@ -515,9 +515,9 @@ cdef class Fraction:
         if sign:
             digits = -digits
         if exp >= 0:
-            return _fraction_from_coprime_ints(digits * pow10(exp), None, cls)
+            return _fraction_from_coprime_ints(digits * pow10(exp), 1, cls)
         else:
-            return _fraction_from_coprime_ints(digits, pow10(-exp), cls)
+            return cls(digits, pow10(-exp))
 
     def is_integer(self):
         """Return True if the Fraction is an integer."""
