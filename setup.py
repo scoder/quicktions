@@ -65,8 +65,8 @@ if sys.platform == "darwin":
     try:
         if int(os.environ.get("MACOSX_DEPLOYMENT_TARGET", "0").split(".", 1)[0]) >= 11:
             if "-arch" not in os.environ.get("CFLAGS", ""):
-                os.environ["CFLAGS"] += " -arch arm64 -arch x86_64"
-                os.environ["LDFLAGS"] += " -arch arm64 -arch x86_64"
+                os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") + " -arch arm64 -arch x86_64"
+                os.environ["LDFLAGS"] = os.environ.get("LDFLAGS", "") + " -arch arm64 -arch x86_64"
     except ValueError:
         pass  # probably cannot parse "MACOSX_DEPLOYMENT_TARGET"
 
