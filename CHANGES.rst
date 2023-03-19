@@ -13,6 +13,11 @@ ChangeLog
 * ``Fraction.limit_denominator()`` is faster, following
   https://github.com/python/cpython/pull/93730
 
+* Internal creation of result Fractions is about 10% faster if the calculated
+  numerator/denominator pair is already normalised, following
+  https://github.com/python/cpython/pull/101780
+
+
 1.13 (2022-01-11)
 -----------------
 

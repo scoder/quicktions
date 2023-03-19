@@ -330,6 +330,8 @@ cdef object _FLOAT_FORMAT_SPECIFICATION_MATCHER = re.compile(r"""
     $
 """, re.DOTALL | re.VERBOSE).match
 
+cdef object NOINIT = object()
+
 
 cdef class Fraction:
     """A Rational number.
@@ -367,9 +369,12 @@ cdef class Fraction:
     cdef _denominator
     cdef Py_hash_t _hash
 
-    def __cinit__(self, numerator=0, denominator=None, *, bint _normalize=True):
-        cdef Fraction value
+    def __cinit__(self, numerator=0, denominator=None):
         self._hash = -1
+        if numerator is NOINIT:
+            return  # fast-path for external initialisation
+
+        cdef bint _normalize = True
         if denominator is None:
             if type(numerator) is int or type(numerator) is long:
                 self._numerator = numerator
@@ -500,14 +505,19 @@ cdef class Fraction:
             raise OverflowError(f"Cannot convert {dec} to {cls.__name__}.")
         if dec.is_nan():
             raise ValueError(f"Cannot convert {dec} to {cls.__name__}.")
+
+        if _decimal_supports_integer_ratio:
+            num, denom = dec.as_integer_ratio()
+            return _fraction_from_coprime_ints(num, denom, cls)
+
         sign, digits, exp = dec.as_tuple()
         digits = int(''.join(map(str, digits)))
         if sign:
             digits = -digits
         if exp >= 0:
-            return cls(digits * pow10(exp))
+            return _fraction_from_coprime_ints(digits * pow10(exp), None, cls)
         else:
-            return cls(digits, pow10(-exp))
+            return _fraction_from_coprime_ints(digits, pow10(-exp), cls)
 
     def is_integer(self):
         """Return True if the Fraction is an integer."""
@@ -574,9 +584,9 @@ cdef class Fraction:
         # the distance from p1/q1 to self is d/(q1*self._denominator). So we
         # need to compare 2*(q0+k*q1) with self._denominator/d.
         if 2*d*(q0+k*q1) <= self._denominator:
-            return Fraction(p1, q1, _normalize=False)
+            return _fraction_from_coprime_ints(p1, q1)
         else:
-            return Fraction(p0+k*p1, q0+k*q1, _normalize=False)
+            return _fraction_from_coprime_ints(p0+k*p1, q0+k*q1)
 
     @property
     def numerator(self):
@@ -839,15 +849,15 @@ cdef class Fraction:
         """+a: Coerces a subclass instance to Fraction"""
         if type(a) is Fraction:
             return a
-        return Fraction(a._numerator, a._denominator, _normalize=False)
+        return _fraction_from_coprime_ints(a._numerator, a._denominator)
 
     def __neg__(a):
         """-a"""
-        return Fraction(-a._numerator, a._denominator, _normalize=False)
+        return _fraction_from_coprime_ints(-a._numerator, a._denominator)
 
     def __abs__(a):
         """abs(a)"""
-        return Fraction(abs(a._numerator), a._denominator, _normalize=False)
+        return _fraction_from_coprime_ints(abs(a._numerator), a._denominator)
 
     def __int__(a):
         """int(a)"""
@@ -1113,20 +1123,39 @@ cdef class Fraction:
 Rational.register(Fraction)
 
 
+cdef _fraction_from_coprime_ints(numerator, denominator, cls=None):
+    """Convert a pair of ints to a rational number, for internal use.
+
+    The ratio of integers should be in lowest terms and the denominator
+    should be positive.
+    """
+    cdef Fraction obj
+    if cls is None or cls is Fraction:
+        obj = Fraction.__new__(Fraction, NOINIT, NOINIT)
+    else:
+        obj = super(Fraction, cls).__new__(cls)
+    obj._numerator = numerator
+    obj._denominator = denominator
+    return obj
+
+
 cdef _pow(an, ad, bn, bd):
     if bd == 1:
+        # power = bn
         if bn >= 0:
-            return Fraction(an ** bn,
-                            ad ** bn,
-                            _normalize=False)
-        elif an >= 0:
-            return Fraction(ad ** -bn,
-                            an ** -bn,
-                            _normalize=False)
+            return _fraction_from_coprime_ints(
+                an ** bn,
+                ad ** bn)
+        elif an > 0:
+            return _fraction_from_coprime_ints(
+                ad ** -bn,
+                an ** -bn)
+        elif an == 0:
+            raise ZeroDivisionError(f'Fraction({ad ** -bn}, 0)')
         else:
-            return Fraction((-ad) ** -bn,
-                            (-an) ** -bn,
-                            _normalize=False)
+            return _fraction_from_coprime_ints(
+                (-ad) ** -bn,
+                (-an) ** -bn)
     else:
         # A fractional power will generally produce an
         # irrational number.
@@ -1210,26 +1239,26 @@ cdef _add(na, da, nb, db):
     # return Fraction(na * db + nb * da, da * db)
     g = _gcd(da, db)
     if g == 1:
-        return Fraction(na * db + da * nb, da * db, _normalize=False)
+        return _fraction_from_coprime_ints(na * db + da * nb, da * db)
     s = da // g
     t = na * (db // g) + nb * s
     g2 = _gcd(t, g)
     if g2 == 1:
-        return Fraction(t, s * db, _normalize=False)
-    return Fraction(t // g2, s * (db // g2), _normalize=False)
+        return _fraction_from_coprime_ints(t, s * db)
+    return _fraction_from_coprime_ints(t // g2, s * (db // g2))
 
 cdef _sub(na, da, nb, db):
     """a - b"""
     # return Fraction(na * db - nb * da, da * db)
     g = _gcd(da, db)
     if g == 1:
-        return Fraction(na * db - da * nb, da * db, _normalize=False)
+        return _fraction_from_coprime_ints(na * db - da * nb, da * db)
     s = da // g
     t = na * (db // g) - nb * s
     g2 = _gcd(t, g)
     if g2 == 1:
-        return Fraction(t, s * db, _normalize=False)
-    return Fraction(t // g2, s * (db // g2), _normalize=False)
+        return _fraction_from_coprime_ints(t, s * db)
+    return _fraction_from_coprime_ints(t // g2, s * (db // g2))
 
 cdef _mul(na, da, nb, db):
     """a * b"""
@@ -1242,12 +1271,14 @@ cdef _mul(na, da, nb, db):
     if g2 > 1:
         nb //= g2
         da //= g2
-    return Fraction(na * nb, db * da, _normalize=False)
+    return _fraction_from_coprime_ints(na * nb, db * da)
 
 cdef _div(na, da, nb, db):
     """a / b"""
     # return Fraction(na * db, da * nb)
     # Same as _mul(), with inversed b.
+    if nb == 0:
+        raise ZeroDivisionError(f'Fraction({db}, 0)')
     g1 = _gcd(na, nb)
     if g1 > 1:
         na //= g1
@@ -1259,7 +1290,7 @@ cdef _div(na, da, nb, db):
     n, d = na * db, nb * da
     if d < 0:
         n, d = -n, -d
-    return Fraction(n, d, _normalize=False)
+    return _fraction_from_coprime_ints(n, d)
 
 cdef _floordiv(an, ad, bn, bd):
     """a // b -> int"""
