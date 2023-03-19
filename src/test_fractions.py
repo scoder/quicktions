@@ -1454,7 +1454,7 @@ class QuicktionsTest(unittest.TestCase):
             self.assertEqual(ff.numerator, qf.numerator)
             self.assertEqual(ff.denominator, qf.denominator)
 
-    @allow_large_integers(60000)
+    @allow_large_integers(200000)
     def test_large_values(self):
         values = [
             "123456" * 10000 + "/" + "765432" * 7777,
