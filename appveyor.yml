@@ -26,6 +26,7 @@ environment:
   matrix:
     - PYTHON_VERSION: 2.7
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2013
+    - PYTHON_VERSION: "3.11"
     - PYTHON_VERSION: "3.10"
     - PYTHON_VERSION: 3.9
     - PYTHON_VERSION: 3.8
