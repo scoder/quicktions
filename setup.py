@@ -54,6 +54,15 @@ elif enable_coverage:
             "-DCYTHON_TRACE_NOGIL=1",
         ]
 
+if sys.platform == "darwin":
+    try:
+        if int(os.environ.get("MACOSX_DEPLOYMENT_TARGET", "0").split(".", 1)[0]) >= 11:
+            if "-arch" not in os.environ.get("CFLAGS", ""):
+                os.environ["CFLAGS"] += " -arch arm64 -arch x86_64"
+                os.environ["LDFLAGS"] += " -arch arm64 -arch x86_64"
+    except ValueError:
+        pass  # probably cannot parse "MACOSX_DEPLOYMENT_TARGET"
+
 
 with open('src/quicktions.pyx') as f:
     version = re.search("__version__\s*=\s*'([^']+)'", f.read(2048)).group(1)
