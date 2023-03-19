@@ -6,7 +6,7 @@ on:
 
 jobs:
   sdist:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
@@ -48,7 +48,7 @@ jobs:
           - python_version: "3.12-dev"
             allowed_failure: true
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
@@ -146,7 +146,7 @@ jobs:
         python_version: ["2.7", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
 
     runs-on: ${{ matrix.os }}
-    env: { MACOSX_DEPLOYMENT_TARGET: 10.14 }
+    env: { MACOSX_DEPLOYMENT_TARGET: 10.15 }
 
     steps:
     - uses: actions/checkout@v3
