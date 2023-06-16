@@ -148,6 +148,9 @@ jobs:
         include:
           - python_version: "3.12-dev"
             allowed_failure: true
+        exclude:
+          - python_version: "2.7"
+            os: windows-latest
 
     runs-on: ${{ matrix.os }}
     env: { MACOSX_DEPLOYMENT_TARGET: 11.0 }
