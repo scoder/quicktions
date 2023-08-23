@@ -72,7 +72,7 @@ if sys.platform == "darwin":
 
 
 with open('src/quicktions.pyx') as f:
-    version = re.search("__version__\s*=\s*'([^']+)'", f.read(2048)).group(1)
+    version = re.search(r"__version__\s*=\s*'([^']+)'", f.read(2048)).group(1)
 
 with open('README.rst') as f:
     long_description = ''.join(f.readlines()[3:]).strip()
