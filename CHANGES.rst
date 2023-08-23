@@ -6,6 +6,8 @@ ChangeLog
 
 * Add support for Python 3.12 by using Cython 3.0.0.
 
++ Remove support for Python 2.7.
+
 
 1.14 (2023-03-19)
 -----------------
