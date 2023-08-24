@@ -3,7 +3,7 @@
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014 Python Software Foundation; All Rights Reserved
 #
-# Based on the "test/test_fractions" module in CPython 3.4 and later.
+# Based on the "test/test_fractions" module in CPython 3.4.
 # https://hg.python.org/cpython/file/b18288f24501/Lib/test/test_fractions.py
 
 """Tests for Lib/fractions.py, slightly adapted for quicktions."""
@@ -523,14 +523,16 @@ class FractionTest(unittest.TestCase):
     def testConversions(self):
         self.assertTypedEquals(-1, math.trunc(F(-11, 10)))
         self.assertTypedEquals(1, math.trunc(F(11, 10)))
-        self.assertTypedEquals(-2, math.floor(F(-11, 10)))
-        self.assertTypedEquals(-1, math.ceil(F(-11, 10)))
-        self.assertTypedEquals(-1, math.ceil(F(-10, 10)))
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(-2, math.floor(F(-11, 10)))
+            self.assertTypedEquals(-1, math.ceil(F(-11, 10)))
+            self.assertTypedEquals(-1, math.ceil(F(-10, 10)))
         self.assertTypedEquals(-1, int(F(-11, 10)))
-        self.assertTypedEquals(0, round(F(-1, 10)))
-        self.assertTypedEquals(0, round(F(-5, 10)))
-        self.assertTypedEquals(-2, round(F(-15, 10)))
-        self.assertTypedEquals(-1, round(F(-7, 10)))
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(0, round(F(-1, 10)))
+            self.assertTypedEquals(0, round(F(-5, 10)))
+            self.assertTypedEquals(-2, round(F(-15, 10)))
+            self.assertTypedEquals(-1, round(F(-7, 10)))
 
         self.assertEqual(False, bool(F(0, 1)))
         self.assertEqual(True, bool(F(3, 2)))
@@ -625,14 +627,16 @@ class FractionTest(unittest.TestCase):
         numerator = CustomValue(0)
         r = F(numerator)
         self.assertEqual(bool(r), False)
-        self.assertIs(bool(r), False)
+        if sys.version_info >= (3,):
+            self.assertIs(bool(r), False)
 
     def testRound(self):
-        self.assertTypedEquals(F(-200), round(F(-150), -2))
-        self.assertTypedEquals(F(-200), round(F(-250), -2))
-        self.assertTypedEquals(F(30), round(F(26), -1))
-        self.assertTypedEquals(F(-2, 10), round(F(-15, 100), 1))
-        self.assertTypedEquals(F(-2, 10), round(F(-25, 100), 1))
+        if sys.version_info[0] >= 3:
+            self.assertTypedEquals(F(-200), round(F(-150), -2))
+            self.assertTypedEquals(F(-200), round(F(-250), -2))
+            self.assertTypedEquals(F(30), round(F(26), -1))
+            self.assertTypedEquals(F(-2, 10), round(F(-15, 100), 1))
+            self.assertTypedEquals(F(-2, 10), round(F(-25, 100), 1))
 
     def testArithmetic(self):
         self.assertEqual(F(1, 2), F(1, 10) + F(2, 5))
@@ -652,9 +656,13 @@ class FractionTest(unittest.TestCase):
         self.assertEqual(F(27, 8), F(2, 3) ** F(-3))
         self.assertTypedEquals(2.0, F(4) ** F(1, 2))
         self.assertEqual(F(1, 1), +F(1, 1))
-        z = pow(F(-1), F(1, 2))
-        self.assertAlmostEqual(z.real, 0)
-        self.assertEqual(z.imag, 1)
+        try:
+            z = pow(F(-1), F(1, 2))
+        except ValueError:
+            self.assertEqual(2, sys.version_info[0])
+        else:
+            self.assertAlmostEqual(z.real, 0)
+            self.assertEqual(z.imag, 1)
 
         # Regression test for #27539.
         p = F(-1, 2) ** 0
@@ -765,9 +773,13 @@ class FractionTest(unittest.TestCase):
         self.assertTypedEquals(0.1, F(1, 10) ** 1.0)
         self.assertTypedEquals(0.1 + 0j, F(1, 10) ** (1.0 + 0j))
         self.assertTypedEquals(4 , 2 ** F(2, 1))
-        z = pow(-1, F(1, 2))
-        self.assertAlmostEqual(0, z.real)
-        self.assertEqual(1, z.imag)
+        try:
+            z = pow(-1, F(1, 2))
+        except ValueError:
+            self.assertEqual(2, sys.version_info[0])
+        else:
+            self.assertAlmostEqual(0, z.real)
+            self.assertEqual(1, z.imag)
         self.assertTypedEquals(F(1, 4) , 2 ** F(-2, 1))
         self.assertTypedEquals(2.0 , 4 ** F(1, 2))
         self.assertTypedEquals(0.25, 2.0 ** F(-2, 1))
@@ -924,12 +936,13 @@ class FractionTest(unittest.TestCase):
         self.assertEqual("7", str(F(7, 1)))
 
     def testHash(self):
-        hmod = sys.hash_info.modulus
-        hinf = sys.hash_info.inf
-        self.assertEqual(hash(2.5), hash(F(5, 2)))
-        self.assertEqual(hash(10**50), hash(F(10**50)))
-        self.assertNotEqual(hash(float(10**23)), hash(F(10**23)))
-        self.assertEqual(hinf, hash(F(1, hmod)))
+        if sys.version_info >= (3,2):
+            hmod = sys.hash_info.modulus
+            hinf = sys.hash_info.inf
+            self.assertEqual(hash(2.5), hash(F(5, 2)))
+            self.assertEqual(hash(10**50), hash(F(10**50)))
+            self.assertNotEqual(hash(float(10**23)), hash(F(10**23)))
+            self.assertEqual(hinf, hash(F(1, hmod)))
         # Check that __hash__ produces the same value as hash(), for
         # consistency with int and Decimal.  (See issue #10356.)
         self.assertEqual(hash(F(-1)), F(-1).__hash__())
@@ -942,8 +955,9 @@ class FractionTest(unittest.TestCase):
         self.assertEqual(hash(fractions.Fraction(10, 1)), hash(F(10, 1)))
         self.assertEqual(hash(fractions.Fraction(-1, 1)), hash(F(-1, 1)))
         self.assertEqual(hash(fractions.Fraction(-1, 10)), hash(F(-1, 10)))
-        self.assertEqual(hash(fractions.Fraction(1.2)), hash(F(1.2)))
-        self.assertEqual(hash(fractions.Fraction(1.5)), hash(F(1.5)))
+        if sys.version_info >= (2, 7):
+            self.assertEqual(hash(fractions.Fraction(1.2)), hash(F(1.2)))
+            self.assertEqual(hash(fractions.Fraction(1.5)), hash(F(1.5)))
 
     def testApproximatePi(self):
         # Algorithm borrowed from
