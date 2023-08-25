@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.15 (2023-??-??)
+1.15 (2023-08-25)
 -----------------
 
 * Add support for Python 3.12 by using Cython 3.0.1.
