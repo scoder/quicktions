@@ -42,10 +42,10 @@ jobs:
       fail-fast: false
 
       matrix:
-        python_version: ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12-dev"]
+        python-version: ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12-dev"]
 
         include:
-          - python_version: "3.12-dev"
+          - python-version: "3.12-dev"
             allowed_failure: true
 
     runs-on: ubuntu-20.04
@@ -57,7 +57,7 @@ jobs:
       uses: actions/setup-python@v4
       if: startsWith(matrix.python-version, '3.')
       with:
-        python-version: ${{ matrix.python_version }}
+        python-version: ${{ matrix.python-version }}
 
     - name: Set up Python2 (Linux)
       if: matrix.python-version == '2.7' && startsWith(matrix.os, 'ubuntu')
@@ -155,13 +155,13 @@ jobs:
         #os: [macos-10.15, windows-latest]
         #os: [macos-10.15, macOS-M1]
         os: [macos-11.0, windows-latest]
-        python_version: ["2.7", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12-dev"]
+        python-version: ["2.7", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12-dev"]
 
         include:
-          - python_version: "3.12-dev"
+          - python-version: "3.12-dev"
             allowed_failure: true
         exclude:
-          - python_version: "2.7"
+          - python-version: "2.7"
             os: windows-latest
 
     runs-on: ${{ matrix.os }}
@@ -174,7 +174,7 @@ jobs:
       uses: actions/setup-python@v4
       if: startsWith(matrix.python-version, '3.')
       with:
-        python-version: ${{ matrix.python_version }}
+        python-version: ${{ matrix.python-version }}
 
     - name: Set up Python2 (Linux)
       if: matrix.python-version == '2.7' && startsWith(matrix.os, 'ubuntu')
