@@ -50,6 +50,11 @@ import sys
 
 cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
 cdef object _operator_index = operator.index
+cdef object math_gcd
+try:
+    math_gcd = math.gcd
+except AttributeError:
+    pass
 
 
 # Cache widely used 10**x int objects.
@@ -89,25 +94,24 @@ cdef pow10(long long i):
 
 cdef extern from *:
     """
-    #if PY_VERSION_HEX < 0x030500F0 || !CYTHON_COMPILING_IN_CPYTHON
+    #if PY_VERSION_HEX < 0x030500F0 || PY_VERSION_HEX >= 0x030d0000 || !CYTHON_COMPILING_IN_CPYTHON
         #define _PyLong_GCD(a, b) (NULL)
     #endif
     """
-    # CPython 3.5+ has a fast PyLong GCD implementation that we can use.
+    # CPython 3.5-3.12 has a fast PyLong GCD implementation that we can use.
+    # In CPython 3.13, math.gcd() is fast enough to call it directly.
     int PY_VERSION_HEX
-    int IS_CPYTHON "CYTHON_COMPILING_IN_CPYTHON"
+    int HAS_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
     _PyLong_GCD(a, b)
 
 
 cpdef _gcd(a, b):
     """Calculate the Greatest Common Divisor of a and b as a non-negative number.
     """
-    if PY_VERSION_HEX < 0x030500F0 or not IS_CPYTHON:
+    if PY_VERSION_HEX >= 0x030d0000:
+        return math_gcd(a, b)
+    if PY_VERSION_HEX < 0x030500F0 or not HAS_PYLONG_GCD:
         return _gcd_fallback(a, b)
-    if not isinstance(a, int):
-        a = int(a)
-    if not isinstance(b, int):
-        b = int(b)
     return _PyLong_GCD(a, b)
 
 
@@ -132,38 +136,6 @@ cdef cunumber _igcd(cunumber a, cunumber b):
     while b:
         a, b = b, a%b
     return a
-
-
-cdef cunumber _ibgcd(cunumber a, cunumber b):
-    """Binary GCD algorithm.
-    See https://en.wikipedia.org/wiki/Binary_GCD_algorithm
-    """
-    cdef uint shift = 0
-    if not a:
-        return b
-    if not b:
-        return a
-
-    # Find common pow2 factors.
-    while not (a|b) & 1:
-        a >>= 1
-        b >>= 1
-        shift += 1
-
-    # Exclude factor 2.
-    while not a & 1:
-        a >>= 1
-
-    # a is always odd from here on.
-    while b:
-        while not b & 1:
-            b >>= 1
-        if a > b:
-            a, b = b, a
-        b -= a
-
-    # Restore original pow2 factor.
-    return a << shift
 
 
 cdef _py_gcd(ullong a, ullong b):
@@ -455,6 +427,10 @@ cdef class Fraction:
         if denominator == 0:
             raise ZeroDivisionError(f'Fraction({numerator}, 0)')
         if _normalize:
+            if not isinstance(numerator, int):
+                numerator = int(numerator)
+            if not isinstance(denominator, int):
+                denominator = int(denominator)
             g = _gcd(numerator, denominator)
             # NOTE: 'is' tests on integers are generally a bad idea, but
             # they are fast and if they fail here, it'll still be correct
