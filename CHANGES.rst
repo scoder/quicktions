@@ -1,6 +1,15 @@
 ChangeLog
 =========
 
+1.16 (2024-01-10)
+-----------------
+
+* Formatting support was improved, following CPython 3.13a3 as of
+  https://github.com/python/cpython/pull/111320
+
+* Add support for Python 3.13 by using Cython 3.0.8 and calling ``math.gcd()``.
+
+
 1.15 (2023-08-27)
 -----------------
 
