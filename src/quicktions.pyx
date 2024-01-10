@@ -282,6 +282,24 @@ cdef _round_to_figures(n, d, Py_ssize_t figures):
     return sign, significand, exponent
 
 
+# Pattern for matching non-float-style format specifications.
+cdef object _GENERAL_FORMAT_SPECIFICATION_MATCHER = re.compile(r"""
+    (?:
+        (?P<fill>.)?
+        (?P<align>[<>=^])
+    )?
+    (?P<sign>[-+ ]?)
+    # Alt flag forces a slash and denominator in the output, even for
+    # integer-valued Fraction objects.
+    (?P<alt>\#)?
+    # We don't implement the zeropad flag since there's no single obvious way
+    # to interpret it.
+    (?P<minimumwidth>0|[1-9][0-9]*)?
+    (?P<thousands_sep>[,_])?
+    $
+""", re.DOTALL | re.VERBOSE).match
+
+
 # Pattern for matching float-style format specifications;
 # supports 'e', 'E', 'f', 'F', 'g', 'G' and '%' presentation types.
 cdef object _FLOAT_FORMAT_SPECIFICATION_MATCHER = re.compile(r"""
@@ -586,28 +604,64 @@ cdef class Fraction:
         else:
             return '%s/%s' % (self._numerator, self._denominator)
 
-    def __format__(self, format_spec, /):
-        """Format this fraction according to the given format specification."""
+    @cython.final
+    cdef _format_general(self, dict match):
+        """Helper method for __format__.
 
-        # Backwards compatibility with existing formatting.
-        if not format_spec:
-            return str(self)
-
+        Handles fill, alignment, signs, and thousands separators in the
+        case of no presentation type.
+        """
         # Validate and parse the format specifier.
-        match = _FLOAT_FORMAT_SPECIFICATION_MATCHER(format_spec)
-        if match is None:
-            raise ValueError(
-                f"Invalid format specifier {format_spec!r} "
-                f"for object of type {type(self).__name__!r}"
-            )
-        match = match.groupdict()  # Py2
-        if match["align"] is not None and match["zeropad"] is not None:
-            # Avoid the temptation to guess.
-            raise ValueError(
-                f"Invalid format specifier {format_spec!r} "
-                f"for object of type {type(self).__name__!r}; "
-                "can't use explicit alignment when zero-padding"
-            )
+        fill = match["fill"] or " "
+        cdef Py_UCS4 align = ord(match["align"] or ">")
+        pos_sign = "" if match["sign"] == "-" else match["sign"]
+        cdef bint alternate_form = match["alt"]
+        cdef Py_ssize_t minimumwidth = int(match["minimumwidth"] or "0")
+        thousands_sep = match["thousands_sep"] or ''
+
+        if PY_MAJOR_VERSION < 3:
+            py2_thousands_sep, thousands_sep = thousands_sep, ''
+        cdef Py_ssize_t first_pos  # Py2-only
+
+        # Determine the body and sign representation.
+        n, d = self._numerator, self._denominator
+        if PY_MAJOR_VERSION < 3 and py2_thousands_sep:
+            # Insert thousands separators if required.
+            body = str(abs(n))
+            first_pos = 1 + (len(body) - 1) % 3
+            body = body[:first_pos] + "".join([
+                py2_thousands_sep + body[pos : pos + 3]
+                for pos in range(first_pos, len(body), 3)
+            ])
+            if d > 1 or alternate_form:
+                den = str(abs(d))
+                first_pos = 1 + (len(den) - 1) % 3
+                den = den[:first_pos] + "".join([
+                    py2_thousands_sep + den[pos: pos + 3]
+                    for pos in range(first_pos, len(den), 3)
+                ])
+                body += "/" + den
+        elif d > 1 or alternate_form:
+            body = f"{abs(n):{thousands_sep}}/{d:{thousands_sep}}"
+        else:
+            body = f"{abs(n):{thousands_sep}}"
+        sign = '-' if n < 0 else pos_sign
+
+        # Pad with fill character if necessary and return.
+        padding = fill * (minimumwidth - len(sign) - len(body))
+        if align == u">":
+            return padding + sign + body
+        elif align == u"<":
+            return sign + body + padding
+        elif align == u"^":
+            half = len(padding) // 2
+            return padding[:half] + sign + body + padding[half:]
+        else:  # align == u"="
+            return sign + padding + body
+
+    @cython.final
+    cdef _format_float_style(self, dict match):
+        """Helper method for __format__; handles float presentation types."""
         fill = match["fill"] or " "
         align = match["align"] or ">"
         pos_sign = "" if match["sign"] == "-" else match["sign"]
@@ -706,6 +760,24 @@ cdef class Fraction:
             return padding[:half] + sign + body + padding[half:]
         else:  # align == "="
             return sign + padding + body
+
+    def __format__(self, format_spec, /):
+        """Format this fraction according to the given format specification."""
+
+        if match := _GENERAL_FORMAT_SPECIFICATION_MATCHER(format_spec):
+            return self._format_general(match.groupdict())
+
+        if match := _FLOAT_FORMAT_SPECIFICATION_MATCHER(format_spec):
+            # Refuse the temptation to guess if both alignment _and_
+            # zero padding are specified.
+            match_groups = match.groupdict()
+            if match_groups["align"] is None or match_groups["zeropad"] is None:
+                return self._format_float_style(match_groups)
+
+        raise ValueError(
+            f"Invalid format specifier {format_spec!r} "
+            f"for object of type {type(self).__name__!r}"
+        )
 
     def __add__(a, b):
         """a + b"""

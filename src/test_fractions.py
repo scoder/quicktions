@@ -16,12 +16,14 @@ try:
     from test.support import requires_IEEE_754
 except ImportError:
     def requires_IEEE_754(test): return test
+import fractions
+import functools
+import io
+import itertools
 import math
 import numbers
 import operator
-import fractions
-import functools
-import itertools
+import os.path
 import sys
 try:
     import typing
@@ -35,6 +37,10 @@ from pickle import dumps, loads
 import quicktions
 F = quicktions.Fraction
 gcd = quicktions._gcd
+
+#locate file with float format test values
+test_dir = os.path.dirname(__file__) or os.curdir
+format_testfile = os.path.join(test_dir, 'formatfloat_testcases.txt')
 
 
 def allow_large_integers(max_size):
@@ -1026,12 +1032,50 @@ class FractionTest(unittest.TestCase):
         self.assertEqual(type(f.denominator), myint)
 
     def test_format_no_presentation_type(self):
-        # Triples (fraction, specification, expected_result)
+        # Triples (fraction, specification, expected_result).
         testcases = [
-            (F(1, 3), '', '1/3'),
-            (F(-1, 3), '', '-1/3'),
-            (F(3), '', '3'),
-            (F(-3), '', '-3'),
+            # Explicit sign handling
+            (F(2, 3), '+', '+2/3'),
+            (F(-2, 3), '+', '-2/3'),
+            (F(3), '+', '+3'),
+            (F(-3), '+', '-3'),
+            (F(2, 3), ' ', ' 2/3'),
+            (F(-2, 3), ' ', '-2/3'),
+            (F(3), ' ', ' 3'),
+            (F(-3), ' ', '-3'),
+            (F(2, 3), '-', '2/3'),
+            (F(-2, 3), '-', '-2/3'),
+            (F(3), '-', '3'),
+            (F(-3), '-', '-3'),
+            # Padding
+            (F(0), '5', '    0'),
+            (F(2, 3), '5', '  2/3'),
+            (F(-2, 3), '5', ' -2/3'),
+            (F(2, 3), '0', '2/3'),
+            (F(2, 3), '1', '2/3'),
+            (F(2, 3), '2', '2/3'),
+            # Alignment
+            (F(2, 3), '<5', '2/3  '),
+            (F(2, 3), '>5', '  2/3'),
+            (F(2, 3), '^5', ' 2/3 '),
+            (F(2, 3), '=5', '  2/3'),
+            (F(-2, 3), '<5', '-2/3 '),
+            (F(-2, 3), '>5', ' -2/3'),
+            (F(-2, 3), '^5', '-2/3 '),
+            (F(-2, 3), '=5', '- 2/3'),
+            # Fill
+            (F(2, 3), 'X>5', 'XX2/3'),
+            (F(-2, 3), '.<5', '-2/3.'),
+            (F(-2, 3), '\n^6', '\n-2/3\n'),
+            # Thousands separators
+            (F(1234, 5679), ',', '1,234/5,679'),
+            (F(-1234, 5679), '_', '-1_234/5_679'),
+            (F(1234567), '_', '1_234_567'),
+            (F(-1234567), ',', '-1,234,567'),
+            # Alternate form forces a slash in the output
+            (F(123), '#', '123/1'),
+            (F(-123), '#', '-123/1'),
+            (F(0), '#', '0/1'),
         ]
         for fraction, spec, expected in testcases:
             with self.subTest(fraction=fraction, spec=spec):
@@ -1395,11 +1439,39 @@ class FractionTest(unittest.TestCase):
             '.%',
             # Z instead of z for negative zero suppression
             'Z.2f'
+            # z flag not supported for general formatting
+            'z',
+            # zero padding not supported for general formatting
+            '05',
         ]
         for spec in invalid_specs:
             with self.subTest(spec=spec):
                 with self.assertRaises(ValueError):
                     format(fraction, spec)
+
+    @requires_IEEE_754
+    def test_float_format_testfile(self):
+        with io.open(format_testfile, encoding="utf-8") as testfile:
+            for line in testfile:
+                if line.startswith('--'):
+                    continue
+                line = line.strip()
+                if not line:
+                    continue
+
+                lhs, rhs = [s.strip() for s in line.split('->')]
+                fmt, arg = lhs.split()
+                if fmt == '%r':
+                    continue
+                fmt2 = fmt[1:]
+                with self.subTest(fmt=fmt, arg=arg):
+                    f = F(float(arg))
+                    self.assertEqual(format(f, fmt2), rhs)
+                    if f:  # skip negative zero
+                        self.assertEqual(format(-f, fmt2), '-' + rhs)
+                    f = F(arg)
+                    self.assertEqual(float(format(f, fmt2)), float(rhs))
+                    self.assertEqual(float(format(-f, fmt2)), float('-' + rhs))
 
 
 class QuicktionsTest(unittest.TestCase):
