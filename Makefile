@@ -49,7 +49,6 @@ $(addprefix wheel_,$(filter-out %_x86_64, $(filter-out %_i686, $(MANYLINUX_IMAGE
 
 wheel_%: dist/$(PACKAGE)-$(VERSION).tar.gz
 	echo "Building wheels for $(PACKAGE) $(VERSION)"
-	mkdir -p wheelhouse_$(subst wheel_,,$@)
 	time docker run --rm -t \
 		-v $(shell pwd):/io \
 		-e CFLAGS="-O3 -g0 -mtune=generic -pipe -fPIC" \
