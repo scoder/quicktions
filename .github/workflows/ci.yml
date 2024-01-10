@@ -131,9 +131,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files:
-          - dist/*cp27*.whl
-          - dist/*cp35*.whl
+        files: dist/*cp27*.whl, dist/*cp35*.whl
 
     - name: Archive Wheels
       uses: actions/upload-artifact@v3
