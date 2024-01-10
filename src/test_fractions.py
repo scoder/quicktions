@@ -1624,11 +1624,11 @@ class FuzzerTest(unittest.TestCase):
 
 def test_main():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(GcdTest))
-    suite.addTest(unittest.makeSuite(FractionTest))
-    suite.addTest(unittest.makeSuite(QuicktionsTest))
+    suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(GcdTest))
+    suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(FractionTest))
+    suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(QuicktionsTest))
     if not AVOID_SLOW:
-        suite.addTest(unittest.makeSuite(FuzzerTest))
+        suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(FuzzerTest))
     import doctest
     suite.addTest(doctest.DocTestSuite('quicktions'))
     return suite
