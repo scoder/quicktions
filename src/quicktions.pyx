@@ -619,25 +619,25 @@ cdef class Fraction:
         cdef Py_ssize_t minimumwidth = int(match["minimumwidth"] or "0")
         thousands_sep = match["thousands_sep"] or ''
 
-        if PY_MAJOR_VERSION < 3:
-            py2_thousands_sep, thousands_sep = thousands_sep, ''
-        cdef Py_ssize_t first_pos  # Py2-only
+        if PY_VERSION_HEX < 0x03060000:
+            legacy_thousands_sep, thousands_sep = thousands_sep, ''
+        cdef Py_ssize_t first_pos  # Py2/3.5-only
 
         # Determine the body and sign representation.
         n, d = self._numerator, self._denominator
-        if PY_MAJOR_VERSION < 3 and py2_thousands_sep:
+        if PY_VERSION_HEX < 0x03060000 and legacy_thousands_sep:
             # Insert thousands separators if required.
             body = str(abs(n))
             first_pos = 1 + (len(body) - 1) % 3
             body = body[:first_pos] + "".join([
-                py2_thousands_sep + body[pos : pos + 3]
+                legacy_thousands_sep + body[pos : pos + 3]
                 for pos in range(first_pos, len(body), 3)
             ])
             if d > 1 or alternate_form:
                 den = str(abs(d))
                 first_pos = 1 + (len(den) - 1) % 3
                 den = den[:first_pos] + "".join([
-                    py2_thousands_sep + den[pos: pos + 3]
+                    legacy_thousands_sep + den[pos: pos + 3]
                     for pos in range(first_pos, len(den), 3)
                 ])
                 body += "/" + den
