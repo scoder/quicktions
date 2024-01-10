@@ -1,0 +1,145 @@
+name: Wheel build
+
+on:
+  release:
+    types: [created]
+  schedule:
+  #        ┌───────────── minute (0 - 59)
+  #        │  ┌───────────── hour (0 - 23)
+  #        │  │ ┌───────────── day of the month (1 - 31)
+  #        │  │ │ ┌───────────── month (1 - 12 or JAN-DEC)
+  #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+  #        │  │ │ │ │
+  - cron: "42 3 * * 4"
+  push:
+    paths:
+      - .github/workflows/wheels.yml
+      - requirements.txt
+      - pyproject.toml
+      - MANIFEST.in
+      - Makefile
+      - setup.py
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/wheels.yml
+      - requirements.txt
+      - pyproject.toml
+      - MANIFEST.in
+      - Makefile
+      - setup.py
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sdist:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+    - name: Set up Python
+      uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+      with:
+        python-version: "3.x"
+
+    - name: Install Python dependencies
+      run: python -m pip install -U pip setuptools wheel && python -m pip install -U -r requirements.txt
+
+    - name: Build sdist
+      run: make sdist
+
+    - name: Release
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/*.tar.gz
+
+    - name: Upload sdist
+      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+      with:
+        name: sdist
+        path: dist/*.tar.gz
+
+  generate-wheels-matrix:
+    # Create a matrix of all architectures & versions to build.
+    # This enables the next step to run cibuildwheel in parallel.
+    # From https://iscinumpy.dev/post/cibuildwheel-2-10-0/#only-210
+    name: Generate wheels matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.set-matrix.outputs.include }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cibuildwheel
+        # Nb. keep cibuildwheel version pin consistent with job below
+        run: pipx install cibuildwheel==2.16.2
+      - id: set-matrix
+        run: |
+          MATRIX=$(
+            {
+              cibuildwheel --print-build-identifiers --platform linux \
+              | jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
+              && cibuildwheel --print-build-identifiers --platform macos \
+              | jq -nRc '{"only": inputs, "os": "macos-latest"}' \
+              && cibuildwheel --print-build-identifiers --platform windows \
+              | jq -nRc '{"only": inputs, "os": "windows-2019"}'
+            } | jq -sc
+          )
+          echo "include=$MATRIX" >> $GITHUB_OUTPUT
+
+  build_wheels:
+    name: Build wheels on ${{ matrix.only }}
+    needs: generate-wheels-matrix
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.generate-wheels-matrix.outputs.include) }}
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.2
+        with:
+          only: ${{ matrix.only }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+          name: lxml-wheels
+
+  upload_release_assets:
+    name: Upload Release Assets
+    needs: [ build_wheels ]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags')
+
+    steps:
+      - name: Download bdist files
+        id: download_artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: lxml-wheels
+          path: ~/downloads
+
+      - name: List downloaded artifacts
+        run: ls -la ~/downloads
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ~/downloads/*.whl
