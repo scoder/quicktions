@@ -7,8 +7,10 @@ __pycache__
 *.egg
 *.egg-info
 
+/venv
 /build
 /dist
+/wheel*/
 src/*.c
 src/*.html
 MANIFEST
@@ -16,6 +18,8 @@ MANIFEST
 .tox
 .coverage
 .idea
+callgrind.*
+perf*.data
 *.patch
 *.orig
 *.rej
