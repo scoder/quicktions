@@ -94,20 +94,56 @@ cdef pow10(long long i):
 
 cdef extern from *:
     """
+    #if PY_VERSION_HEX >= 0x030c00a5 && defined(PyUnstable_Long_IsCompact) && defined(PyUnstable_Long_CompactValue)
+        #define __Quicktions_PyLong_IsCompact(x)  PyUnstable_Long_IsCompact(x)
+      #if CYTHON_COMPILING_IN_CPYTHON
+        #define __Quicktions_PyLong_CompactValueUnsigned(x)  ((unsigned long long) (((PyLongObject*)x)->long_value.ob_digit[0]))
+      #else
+        #define __Quicktions_PyLong_CompactValueUnsigned(x)  ((unsigned long long) PyUnstable_Long_CompactValue(x)))
+      #endif
+    #elif PY_VERSION_HEX < 0x030c0000 && CYTHON_COMPILING_IN_CPYTHON
+        #define __Quicktions_PyLong_IsCompact(x)     (Py_SIZE(x) == 0 || Py_SIZE(x) == 1 || Py_SIZE(x) == -1)
+        #define __Quicktions_PyLong_CompactValueUnsigned(x)  ((unsigned long long) ((Py_SIZE(x) == 0) ? 0 : (((PyLongObject*)x)->ob_digit)[0]))
+    #else
+        #define __Quicktions_PyLong_IsCompact(x)     (0)
+        #define __Quicktions_PyLong_CompactValueUnsigned(x)  (0U)
+    #endif
     #if PY_VERSION_HEX < 0x030500F0 || PY_VERSION_HEX >= 0x030d0000 || !CYTHON_COMPILING_IN_CPYTHON
         #define _PyLong_GCD(a, b) (NULL)
     #endif
+
+    #ifdef __GCC__
+        #define __Quicktions_IS_GCC  1
+        #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
+        #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
+        #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
+    #else
+        #define __Quicktions_IS_GCC  0
+        #define __Quicktions_trailing_zeros_uint(x)    (0)
+        #define __Quicktions_trailing_zeros_ulong(x)   (0)
+        #define __Quicktions_trailing_zeros_ullong(x)  (0)
+    #endif
     """
+    bint PyLong_IsCompact "__Quicktions_PyLong_IsCompact" (x)
+    Py_ssize_t PyLong_CompactValueUnsigned "__Quicktions_PyLong_CompactValueUnsigned" (x)
+
     # CPython 3.5-3.12 has a fast PyLong GCD implementation that we can use.
     # In CPython 3.13, math.gcd() is fast enough to call it directly.
     int PY_VERSION_HEX
     int HAS_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
     _PyLong_GCD(a, b)
 
+    bint IS_GCC "__Quicktions_IS_GCC"
+    int trailing_zeros_uint "__Quicktions_trailing_zeros_uint" (unsigned int x)
+    int trailing_zeros_ulong "__Quicktions_trailing_zeros_ulong" (unsigned long x)
+    int trailing_zeros_ullong "__Quicktions_trailing_zeros_ullong" (unsigned long long x)
+
 
 cpdef _gcd(a, b):
     """Calculate the Greatest Common Divisor of a and b as a non-negative number.
     """
+    if PyLong_IsCompact(a) and PyLong_IsCompact(b):
+        return _c_gcd(PyLong_CompactValueUnsigned(a), PyLong_CompactValueUnsigned(b))
     if PY_VERSION_HEX >= 0x030d0000:
         return math_gcd(a, b)
     if PY_VERSION_HEX < 0x030500F0 or not HAS_PYLONG_GCD:
@@ -133,9 +169,49 @@ cdef ullong _abs(long long x):
 
 cdef cunumber _igcd(cunumber a, cunumber b):
     """Euclid's GCD algorithm"""
+    if IS_GCC:
+        return _binary_gcd(a, b)
+    else:
+        return _euclid_gcd(a, b)
+
+
+cdef cunumber _euclid_gcd(cunumber a, cunumber b):
+    """Euclid's GCD algorithm"""
     while b:
         a, b = b, a%b
     return a
+
+
+cdef inline int trailing_zeros(cunumber x):
+    if cunumber is uint:
+        return trailing_zeros_uint(x)
+    elif cunumber is ulong:
+        return trailing_zeros_ulong(x)
+    else:
+        return trailing_zeros_ullong(x)
+
+
+cdef cunumber _binary_gcd(cunumber a, cunumber b):
+    # See https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+    if not a:
+        return b
+    if not b:
+        return a
+    
+    cdef int i = trailing_zeros(a)
+    a >>= i
+    cdef int j = trailing_zeros(b)
+    b >>= j
+
+    cdef int k = min(i, j)
+
+    while True:
+        if a > b:
+            a, b = b, a
+        b -= a
+        if not b:
+            return a << k
+        b >>= trailing_zeros(b)
 
 
 cdef _py_gcd(ullong a, ullong b):
