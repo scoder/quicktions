@@ -312,22 +312,24 @@ def bm_calculation(expressions=benchmark_expressions, values=benchmark_values, c
         yield (cls, results)
 
 
-def run_benchmarks():
-    for what, bm in [
-        ('create', bm_create()),
-        ('compute', bm_calculation()),
-        ('pidigits', bm_pidigits()),
+def run_benchmarks(benchmarks=()):
+    for name, bm in [
+        ('create', bm_create),
+        ('compute', bm_calculation),
+        ('pidigits', bm_pidigits),
     ]:
-        for cls, result in bm:
-            yield ((what, cls), result)
+        if benchmarks and name not in benchmarks:
+            continue
+        for cls, result in bm():
+            yield ((name, cls), result)
 
 
-def main():
+def main(*benchmarks):
     results_by_type = defaultdict(dict)
     now = datetime.datetime.now
     start_time = now()
     print(start_time)
-    for key, res in run_benchmarks():
+    for key, res in run_benchmarks(benchmarks):
         for code, t in sorted(res.items()):
             print(f"{code:50s}: {t:8.2f} us")
         results_by_type[key].update(res)
@@ -346,4 +348,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+
+    try:
+        sys.set_int_max_str_digits(len(PI_DIGITS))
+    except AttributeError:
+        pass
+
+    main(*sys.argv[1:])
