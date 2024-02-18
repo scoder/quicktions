@@ -1,13 +1,23 @@
 import datetime
 import itertools
 import operator
+import os
 import statistics
 import timeit
 from collections import defaultdict
 
 from decimal import Decimal
 from fractions import Fraction as PyFraction
-from quicktions import Fraction as QFraction
+
+def rel_path(*path):
+    return os.path.join(os.path.dirname(__file__), *path)
+
+try:
+    from quicktions import Fraction as QFraction
+except ImportError:
+    import sys
+    sys.path.insert(0, rel_path('..', 'src'))
+    from quicktions import Fraction as QFraction
 
 PyFraction.__name__ = "PyFraction"
 

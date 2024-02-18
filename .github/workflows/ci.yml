@@ -140,6 +140,11 @@ jobs:
         path: dist/*.whl
         if-no-files-found: ignore
 
+    - name: Running benchmark
+      run: |
+        python benchmark/telco_fractions.py
+        python benchmark/microbench.py create pydigits
+
   non-Linux:
     strategy:
       # Allows for matrix sub-jobs to fail without canceling the rest
@@ -193,3 +198,8 @@ jobs:
         name: wheels-${{ matrix.os }}
         path: dist/*.whl
         if-no-files-found: ignore
+
+    - name: Running benchmark
+      run: |
+        python benchmark/telco_fractions.py
+        python benchmark/microbench.py create pydigits
