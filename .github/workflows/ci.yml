@@ -128,7 +128,7 @@ jobs:
       run: cp -v wheelhouse*/*-m*linux*.whl dist/  # manylinux / musllinux
 
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: dist/*cp27*.whl, dist/*cp35*.whl
@@ -188,7 +188,7 @@ jobs:
       run: make testslow
 
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/') && matrix.python-version == '2.7'
       with:
         files: dist/*.whl
