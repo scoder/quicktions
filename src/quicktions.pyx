@@ -95,11 +95,11 @@ cdef pow10(long long i):
 cdef extern from *:
     """
     #if PY_VERSION_HEX >= 0x030c00a5 && defined(PyUnstable_Long_IsCompact) && defined(PyUnstable_Long_CompactValue)
-        #define __Quicktions_PyLong_IsCompact(x)  PyUnstable_Long_IsCompact(x)
+        #define __Quicktions_PyLong_IsCompact(x)  PyUnstable_Long_IsCompact((PyLongObject*) (x))
       #if CYTHON_COMPILING_IN_CPYTHON
         #define __Quicktions_PyLong_CompactValueUnsigned(x)  ((unsigned long long) (((PyLongObject*)x)->long_value.ob_digit[0]))
       #else
-        #define __Quicktions_PyLong_CompactValueUnsigned(x)  ((unsigned long long) PyUnstable_Long_CompactValue(x)))
+        #define __Quicktions_PyLong_CompactValueUnsigned(x)  ((unsigned long long) PyUnstable_Long_CompactValue((PyLongObject*) (x))))
       #endif
     #elif PY_VERSION_HEX < 0x030c0000 && CYTHON_COMPILING_IN_CPYTHON
         #define __Quicktions_PyLong_IsCompact(x)     (Py_SIZE(x) == 0 || Py_SIZE(x) == 1 || Py_SIZE(x) == -1)
