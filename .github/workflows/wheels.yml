@@ -60,7 +60,7 @@ jobs:
         files: dist/*.tar.gz
 
     - name: Upload sdist
-      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+      uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6 # v4.2.0
       with:
         name: sdist
         path: dist/*.tar.gz
@@ -117,13 +117,13 @@ jobs:
         with:
           only: ${{ matrix.only }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6 # v4.2.0
         with:
           path: ./wheelhouse/*.whl
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.only }}
 
   upload_release_assets:
-    name: Upload Release Assets
+    name: Upload Release Wheels
     needs: [ build_wheels ]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags')
