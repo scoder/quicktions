@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+1.17 (2024-03-24)
+-----------------
+
+* Math operations were sped up by inlined binary GCD calculation.
+
+
 1.16 (2024-01-10)
 -----------------
 
