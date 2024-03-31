@@ -117,6 +117,24 @@ jobs:
         with:
           only: ${{ matrix.only }}
 
+      - name: Build faster Linux wheels
+        # also build wheels with the most recent manylinux images and gcc
+        if: runner.os == 'Linux' && !contains(matrix.only, 'i686')
+        uses: pypa/cibuildwheel@v2.17.0
+        env:
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_PPC64LE_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_S390X_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_PYPY_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_PYPY_AARCH64_IMAGE: manylinux_2_28
+          CIBW_MUSLLINUX_X86_64_IMAGE: musllinux_1_2
+          CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
+          CIBW_MUSLLINUX_PPC64LE_IMAGE: musllinux_1_2
+          CIBW_MUSLLINUX_S390X_IMAGE: musllinux_1_2
+        with:
+          only: ${{ matrix.only }}
+
       - uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6 # v4.2.0
         with:
           path: ./wheelhouse/*.whl
