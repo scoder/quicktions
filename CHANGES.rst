@@ -1,6 +1,14 @@
 ChangeLog
 =========
 
+1.18 (2024-??-??)
+-----------------
+
+* New binary wheels were added built with gcc 12 (manylinux_2_28).
+
+* Built using Cython 3.0.10.
+
+
 1.17 (2024-03-24)
 -----------------
 
