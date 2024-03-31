@@ -134,10 +134,25 @@ jobs:
           path: ./wheelhouse/*.whl
           name: wheels-${{ matrix.only }}
 
+  merge_wheels:
+    name: Merge wheel archives
+    needs: build_wheels
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Merge wheels
+      uses: actions/upload-artifact/merge@v4
+      with:
+        name: all_wheels
+        pattern: wheels-*
+        delete-merged: true
+        compression-level: 9
+
   upload_release_assets:
     name: Upload packages
-    needs: [ sdist, build_wheels ]
+    needs: [ sdist, merge_wheels ]
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
 
     permissions:
       contents: write
@@ -152,13 +167,10 @@ jobs:
       - name: List downloaded artifacts
         run: ls -la ./dist_downloads
 
-      - uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6 # v4.2.0
-        with:
-          path: ./dist_downloads/*.whl
-          name: all_wheels
+      - name: Deduplicate wheels
+        run: python3 dedup_wheels.py -d ./dist_downloads
 
       - name: Release
-        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          files: ./dist_downloads/*.whl
+          files: ./dist_downloads/*
