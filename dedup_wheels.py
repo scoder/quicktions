@@ -52,16 +52,14 @@ def main(wheel_dir: str, delete=True):
     all_wheels = list(list_wheels(wheel_path))
     wheels = dedup_wheels(all_wheels)
     redundant = set(all_wheels).difference(wheels)
-    if not redundant:
-        return
-
-    print("Redundant wheels found:")
-    print_wheels(redundant)
 
     if delete:
-        for wheel in redundant:
+        for wheel in sorted(redundant):
             print(f"deleting {wheel}")
             os.unlink(wheel_path / wheel)
+    elif redundant:
+        print("Redundant wheels found:")
+        print_wheels(redundant)
 
 
 def parse_args(args):
