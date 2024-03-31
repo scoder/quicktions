@@ -1,6 +1,6 @@
 tox
 pytest
 coverage
-Cython>=3.0.8
+Cython>=3.0.10
 codecov
 wheel
