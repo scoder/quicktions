@@ -87,7 +87,7 @@ jobs:
           echo "include=$MATRIX" >> $GITHUB_OUTPUT
 
   build_wheels:
-    name: Build wheels on ${{ matrix.only }}
+    name: Build ${{ matrix.only }}
     needs: generate-wheels-matrix
     runs-on: ${{ matrix.os }}
 
