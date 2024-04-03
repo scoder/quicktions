@@ -190,6 +190,7 @@ jobs:
         path: dist/*.whl
         if-no-files-found: ignore
 
+    - name: Running benchmark
       run: |
         python benchmark/telco_fractions.py -n 250
         python benchmark/microbench.py create pydigits
