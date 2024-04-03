@@ -104,10 +104,12 @@ def run(cls):
 def main(n, cls=Fraction):
     for _ in range(5):
         run(cls)  # warmup
-    times = []
-    for _ in range(n):
-        times.append(run(cls))
+    times = [run(cls) for _ in range(n)]
     return times
+
+
+def percentile(values, percent):
+    return values[len(values) * percent // 100]
 
 
 if __name__ == "__main__":
@@ -115,7 +117,7 @@ if __name__ == "__main__":
     parser = optparse.OptionParser(
         usage="%prog [options]",
         description="Test the performance of the Telco fractions benchmark")
-    parser.add_option("-n", "--num_runs", action="store", type="int", default=16,
+    parser.add_option("-n", "--num_runs", action="store", type="int", default=200,
                       dest="num_runs", help="Number of times to repeat the benchmark.")
     parser.add_option("--use-decimal", action="store_true", default=False,
                       dest="use_decimal", help="Run benchmark with Decimal instead of Fraction.")
@@ -130,10 +132,12 @@ if __name__ == "__main__":
         from fractions import Fraction as num_class
 
     results = main(options.num_runs, num_class)
-    for result in results:
-        print(result)
+    #for result in results:
+    #    print(result)
+    #print()
 
-    print()
     results.sort()
+    print('%.4f  (15%%)' % percentile(results, 15))
+    print('%.4f  (median)' % percentile(results, 50))
+    print('%.4f  (85%%)' % percentile(results, 85))
     print('%.4f  (mean)' % (fsum(results[1:-1]) / (len(results) - 2)))
-    print('%.4f  (median)' % (results[len(results) // 2]))

@@ -78,7 +78,7 @@ jobs:
 
     - name: Running benchmark
       run: |
-        python benchmark/telco_fractions.py
+        python benchmark/telco_fractions.py -n 250
         python benchmark/microbench.py create pydigits
 
   Linux:
@@ -201,7 +201,7 @@ jobs:
 
     - name: Running benchmark
       run: |
-        python benchmark/telco_fractions.py
+        python benchmark/telco_fractions.py -n 250
         python benchmark/microbench.py create pydigits
 
   merge-wheels:
