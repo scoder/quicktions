@@ -155,14 +155,11 @@ jobs:
         #os: [macos-10.15, windows-latest]
         #os: [macos-10.15, macOS-M1]
         os: [macos-11.0, windows-latest]
-        python-version: ["2.7", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13-dev"]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13-dev"]
 
         include:
           - python-version: "3.13-dev"
             allowed_failure: true
-        exclude:
-          - python-version: "2.7"
-            os: windows-latest
 
     runs-on: ${{ matrix.os }}
     env: { MACOSX_DEPLOYMENT_TARGET: 11.0 }
@@ -172,7 +169,6 @@ jobs:
 
     - name: Set up Python
       uses: actions/setup-python@v5
-      if: startsWith(matrix.python-version, '3.')
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -187,12 +183,6 @@ jobs:
     - name: Run slow tests
       run: make testslow
 
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/') && matrix.python-version == '2.7'
-      with:
-        files: dist/*.whl
-
     - name: Upload wheels
       uses: actions/upload-artifact@v4
       with:
@@ -200,8 +190,6 @@ jobs:
         path: dist/*.whl
         if-no-files-found: ignore
 
-    - name: Running benchmark
-      if: startsWith(matrix.python-version, '3.')
       run: |
         python benchmark/telco_fractions.py -n 250
         python benchmark/microbench.py create pydigits
