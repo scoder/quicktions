@@ -77,7 +77,7 @@ jobs:
       run: make testslow
 
     - name: Running benchmark
-      if: startsWith(matrix.python-version, '3.')
+      if: startsWith(matrix.python-version, '3.') && matrix.python-version != '3.5'
       run: |
         python benchmark/telco_fractions.py -n 250
         python benchmark/microbench.py create pydigits
