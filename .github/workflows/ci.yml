@@ -76,6 +76,11 @@ jobs:
       continue-on-error: ${{ matrix.allowed_failure || false }}
       run: make testslow
 
+    - name: Running benchmark
+      run: |
+        python benchmark/telco_fractions.py
+        python benchmark/microbench.py create pydigits
+
   Linux:
 
     strategy:
@@ -139,12 +144,6 @@ jobs:
         name: wheels-${{ matrix.image }}-${{ matrix.pyversion }}
         path: dist/*.whl
         if-no-files-found: ignore
-
-    - name: Running benchmark
-      run: |
-        make local
-        python benchmark/telco_fractions.py
-        python benchmark/microbench.py create pydigits
 
   non-Linux:
     strategy:
