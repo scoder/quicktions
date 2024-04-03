@@ -1,10 +1,12 @@
 ChangeLog
 =========
 
-1.18 (2024-??-??)
+1.18 (2024-04-03)
 -----------------
 
 * New binary wheels were added built with gcc 12 (manylinux_2_28).
+
+* x86_64 wheels now require SSE4.2.
 
 * Built using Cython 3.0.10.
 
