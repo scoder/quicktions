@@ -1853,6 +1853,12 @@ class FractionTest(unittest.TestCase):
                                  message % ("divmod()", "complex", "quicktions.Fraction"),
                                  divmod, b, a)
 
+    def test_three_argument_pow(self):
+        message = "unsupported operand type(s) for ** or pow(): '%s', '%s', '%s'"
+        self.assertRaisesMessage(TypeError,
+                                 message % ("quicktions.Fraction", "int", "int"),
+                                 pow, F(3), 4, 5)
+
 
 class QuicktionsTest(unittest.TestCase):
     _pi = (
