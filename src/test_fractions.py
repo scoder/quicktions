@@ -3,8 +3,11 @@
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014 Python Software Foundation; All Rights Reserved
 #
-# Based on the "test/test_fractions" module in CPython 3.4.
+# Originally based on the "test/test_fractions" module in CPython 3.4.
 # https://hg.python.org/cpython/file/b18288f24501/Lib/test/test_fractions.py
+#
+# Updated to match the recent development in CPython.
+# https://github.com/python/cpython/blob/main/Lib/test/test_fractions.py
 
 """Tests for Lib/fractions.py, slightly adapted for quicktions."""
 
@@ -278,6 +281,41 @@ class FractionTest(unittest.TestCase):
         self.assertRaises(ValueError, F, Decimal('snan'))
         self.assertRaises(OverflowError, F, Decimal('inf'))
         self.assertRaises(OverflowError, F, Decimal('-inf'))
+
+    def testInitFromIntegerRatio(self):
+        class Ratio:
+            def __init__(self, ratio):
+                self._ratio = ratio
+            def as_integer_ratio(self):
+                return self._ratio
+
+        self.assertEqual((7, 3), _components(F(Ratio((7, 3)))))
+        errmsg = "argument should be a string or a number"
+        # the type also has an "as_integer_ratio" attribute.
+        self.assertRaisesRegex(TypeError, errmsg, F, Ratio)
+        # bad ratio
+        self.assertRaises(TypeError, F, Ratio(7))
+        self.assertRaises(ValueError, F, Ratio((7,)))
+        self.assertRaises(ValueError, F, Ratio((7, 3, 1)))
+        # only single-argument form
+        self.assertRaises(TypeError, F, Ratio((3, 7)), 11)
+        self.assertRaises(TypeError, F, 2, Ratio((-10, 9)))
+
+        # as_integer_ratio not defined in a class
+        class A:
+            pass
+        a = A()
+        a.as_integer_ratio = lambda: (9, 5)
+        self.assertEqual((9, 5), _components(F(a)))
+
+        # as_integer_ratio defined in a metaclass
+        class M(type):
+            def as_integer_ratio(self):
+                return (11, 9)
+        class B(metaclass=M):
+            pass
+        self.assertRaisesRegex(TypeError, errmsg, F, B)
+        self.assertRaisesRegex(TypeError, errmsg, F, B())
 
     def testFromString(self):
         self.assertEqual((5, 1), _components(F("5")))

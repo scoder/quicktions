@@ -197,7 +197,7 @@ cdef cunumber _binary_gcd(cunumber a, cunumber b):
         return b
     if not b:
         return a
-    
+
     cdef int i = trailing_zeros(a)
     a >>= i
     cdef int j = trailing_zeros(b)
@@ -471,7 +471,8 @@ cdef class Fraction:
                     _normalize = False
                 # fall through to normalisation below
 
-            elif isinstance(numerator, float):
+            elif isinstance(numerator, float) or (
+                    not isinstance(numerator, type) and hasattr(numerator, 'as_integer_ratio')):
                 # Exact conversion
                 self._numerator, self._denominator = numerator.as_integer_ratio()
                 return
@@ -492,8 +493,7 @@ cdef class Fraction:
                 return
 
             else:
-                raise TypeError("argument should be a string "
-                                "or a Rational instance")
+                raise TypeError("argument should be a string or a number")
 
         elif type(numerator) is int is type(denominator):
             pass  # *very* normal case

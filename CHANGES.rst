@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+1.19 (2024-??-??)
+-----------------
+
+* Generally use ``.as_integer_ratio()`` in the constructor if available.
+  https://github.com/python/cpython/pull/120271
+
+
 1.18 (2024-04-03)
 -----------------
 
