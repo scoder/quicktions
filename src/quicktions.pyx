@@ -1487,7 +1487,7 @@ cdef forward(a, b, math_func monomorphic_operator, pyoperator, handle_complex=Tr
         return monomorphic_operator(an, ad, (<Fraction>b)._numerator, (<Fraction>b)._denominator)
     elif isinstance(b, int):
         return monomorphic_operator(an, ad, b, 1)
-    elif isinstance(b, (Fraction, Rational)):
+    elif isinstance(b, Fraction):
         return monomorphic_operator(an, ad, b.numerator, b.denominator)
     elif isinstance(b, float):
         return pyoperator(_as_float(an, ad), b)

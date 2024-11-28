@@ -12,6 +12,9 @@ ChangeLog
 * Using ``complex`` numbers in division shows better tracebacks.
   https://github.com/python/cpython/pull/102842
 
+* Mixed calculations with other ``Rational`` classes could return the wrong type.
+  https://github.com/python/cpython/issues/119189
+
 
 1.18 (2024-04-03)
 -----------------
