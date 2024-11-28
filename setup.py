@@ -3,12 +3,7 @@ import os
 import re
 import sys
 
-try:
-    import setuptools
-except ImportError:
-    pass
-
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 
 ext_modules = [
