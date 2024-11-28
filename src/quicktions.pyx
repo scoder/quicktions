@@ -897,19 +897,19 @@ cdef class Fraction:
 
     def __floordiv__(a, b):
         """a // b"""
-        return forward(a, b, _floordiv, _math_op_floordiv)
+        return forward(a, b, _floordiv, _math_op_floordiv, handle_complex=False)
 
     def __rfloordiv__(b, a):
         """a // b"""
-        return reverse(a, b, _floordiv, _math_op_floordiv)
+        return reverse(a, b, _floordiv, _math_op_floordiv, handle_complex=False)
 
     def __mod__(a, b):
         """a % b"""
-        return forward(a, b, _mod, _math_op_mod)
+        return forward(a, b, _mod, _math_op_mod, handle_complex=False)
 
     def __rmod__(b, a):
         """a % b"""
-        return reverse(a, b, _mod, _math_op_mod)
+        return reverse(a, b, _mod, _math_op_mod, handle_complex=False)
 
     def __divmod__(a, b):
         """divmod(self, other): The pair (self // other, self % other).
@@ -917,7 +917,7 @@ cdef class Fraction:
         Sometimes this can be computed faster than the pair of
         operations.
         """
-        return forward(a, b, _divmod, _math_op_divmod)
+        return forward(a, b, _divmod, _math_op_divmod, handle_complex=False)
 
     def __rdivmod__(b, a):
         """divmod(self, other): The pair (self // other, self % other).
@@ -925,7 +925,7 @@ cdef class Fraction:
         Sometimes this can be computed faster than the pair of
         operations.
         """
-        return reverse(a, b, _divmod, _math_op_divmod)
+        return reverse(a, b, _divmod, _math_op_divmod, handle_complex=False)
 
     def __pow__(a, b, x):
         """a ** b
@@ -1516,7 +1516,7 @@ cdef:
 ctypedef object (*math_func)(an, ad, bn, bd)
 
 
-cdef forward(a, b, math_func monomorphic_operator, pyoperator):
+cdef forward(a, b, math_func monomorphic_operator, pyoperator, handle_complex=True):
     an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
     if type(b) is Fraction:
         return monomorphic_operator(an, ad, (<Fraction>b)._numerator, (<Fraction>b)._denominator)
@@ -1526,13 +1526,13 @@ cdef forward(a, b, math_func monomorphic_operator, pyoperator):
         return monomorphic_operator(an, ad, b.numerator, b.denominator)
     elif isinstance(b, float):
         return pyoperator(_as_float(an, ad), b)
-    elif isinstance(b, complex):
+    elif handle_complex and isinstance(b, complex):
         return pyoperator(complex(a), b)
     else:
         return NotImplemented
 
 
-cdef reverse(a, b, math_func monomorphic_operator, pyoperator):
+cdef reverse(a, b, math_func monomorphic_operator, pyoperator, handle_complex=True):
     bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
     if isinstance(a, (int, long)):
         return monomorphic_operator(a, 1, bn, bd)
@@ -1540,7 +1540,7 @@ cdef reverse(a, b, math_func monomorphic_operator, pyoperator):
         return monomorphic_operator(a.numerator, a.denominator, bn, bd)
     elif isinstance(a, Real):
         return pyoperator(float(a), _as_float(bn, bd))
-    elif isinstance(a, Complex):
+    elif handle_complex and isinstance(a, Complex):
         return pyoperator(complex(a), complex(b))
     else:
         return NotImplemented

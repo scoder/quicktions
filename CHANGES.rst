@@ -9,6 +9,9 @@ ChangeLog
 * Generally use ``.as_integer_ratio()`` in the constructor if available.
   https://github.com/python/cpython/pull/120271
 
+* Using ``complex`` numbers in division shows better tracebacks.
+  https://github.com/python/cpython/pull/102842
+
 
 1.18 (2024-04-03)
 -----------------
