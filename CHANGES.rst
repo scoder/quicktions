@@ -4,6 +4,8 @@ ChangeLog
 1.19 (2024-??-??)
 -----------------
 
+* Support for Python 2.7 as well as 3.7 and earlier has been discontinued.
+
 * Generally use ``.as_integer_ratio()`` in the constructor if available.
   https://github.com/python/cpython/pull/120271
 

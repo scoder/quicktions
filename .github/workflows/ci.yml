@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
 
       matrix:
-        python-version: ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14-dev"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14-dev"]
 
         include:
           - python-version: "3.14-dev"
@@ -49,20 +49,8 @@ jobs:
 
     - name: Set up Python
       uses: actions/setup-python@v5
-      if: startsWith(matrix.python-version, '3.')
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Set up Python2 (Linux)
-      if: matrix.python-version == '2.7' && startsWith(matrix.os, 'ubuntu')
-      run: |
-          sudo ln -fs python2 /usr/bin/python
-          sudo apt-get update
-          sudo apt-get install python-setuptools python2-dev
-          curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-          sudo python2 get-pip.py
-          ls -l /usr/bin/pip* /usr/local/bin/pip*
-          which pip
 
     - name: Install Dependency
       run: |
@@ -77,7 +65,7 @@ jobs:
       run: make testslow
 
     - name: Running benchmark
-      if: startsWith(matrix.python-version, '3.') && matrix.python-version != '3.5'
+      if: startsWith(matrix.python-version, '3.')
       run: |
         python benchmark/telco_fractions.py -n 250
         python benchmark/microbench.py create pydigits
@@ -154,10 +142,8 @@ jobs:
       fail-fast: false
 
       matrix:
-        #os: [macos-10.15, windows-latest]
-        #os: [macos-10.15, macOS-M1]
-        os: [macos-latest, windows-latest]
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14-dev"]
+        os: [macos-13, windows-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14-dev"]
 
         include:
           - python-version: "3.14-dev"
