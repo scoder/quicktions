@@ -9,11 +9,15 @@ ChangeLog
 * Generally use ``.as_integer_ratio()`` in the constructor if available.
   https://github.com/python/cpython/pull/120271
 
-* Using ``complex`` numbers in division shows better tracebacks.
-  https://github.com/python/cpython/pull/102842
-
 * Mixed calculations with other ``Rational`` classes could return the wrong type.
   https://github.com/python/cpython/issues/119189
+
+* In mixed calculations with ``complex``, the Fraction is now converted to ``float``
+  instead of ``complex`` to avoid certain corner cases in complex calculation.
+  https://github.com/python/cpython/pull/119839
+
+* Using ``complex`` numbers in division shows better tracebacks.
+  https://github.com/python/cpython/pull/102842
 
 
 1.18 (2024-04-03)

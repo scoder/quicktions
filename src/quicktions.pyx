@@ -1494,7 +1494,7 @@ cdef forward(a, b, math_func monomorphic_operator, pyoperator, handle_complex=Tr
     elif isinstance(b, float):
         return pyoperator(_as_float(an, ad), b)
     elif handle_complex and isinstance(b, complex):
-        return pyoperator(complex(a), b)
+        return pyoperator(float(a), b)
     else:
         return NotImplemented
 
@@ -1508,7 +1508,7 @@ cdef reverse(a, b, math_func monomorphic_operator, pyoperator, handle_complex=Tr
     elif isinstance(a, Real):
         return pyoperator(float(a), _as_float(bn, bd))
     elif handle_complex and isinstance(a, Complex):
-        return pyoperator(complex(a), complex(b))
+        return pyoperator(complex(a), float(b))
     else:
         return NotImplemented
 
