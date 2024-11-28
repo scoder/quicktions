@@ -925,8 +925,10 @@ cdef class Fraction:
             return _pow(a.numerator, a.denominator, b, 1)
         elif isinstance(b, (Fraction, Rational)):
             return _pow(a.numerator, a.denominator, b.numerator, b.denominator)
-        else:
+        elif isinstance(b, (float, complex)):
             return (a.numerator / a.denominator) ** b
+        else:
+            return NotImplemented
 
     def __rpow__(b, a, x):
         """a ** b
