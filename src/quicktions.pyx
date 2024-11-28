@@ -30,7 +30,6 @@ __version__ = '1.18'
 cimport cython
 from cpython.unicode cimport Py_UNICODE_TODECIMAL
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
-from cpython.version cimport PY_MAJOR_VERSION
 from cpython.long cimport PyLong_FromString
 
 cdef extern from *:
@@ -221,9 +220,6 @@ cdef _py_gcd(ullong a, ullong b):
         return <long> _igcd[ulong](<ulong> a, <ulong> b)
     elif b:
         a = _igcd[ullong](a, b)
-    # try PyInt downcast in Py2
-    if PY_MAJOR_VERSION < 3 and a <= <ullong>LONG_MAX:
-        return <long>a
     return a
 
 
@@ -442,7 +438,7 @@ cdef class Fraction:
 
         cdef bint _normalize = True
         if denominator is None:
-            if type(numerator) is int or type(numerator) is long:
+            if type(numerator) is int:
                 self._numerator = numerator
                 self._denominator = 1
                 return
@@ -460,13 +456,6 @@ cdef class Fraction:
             elif isinstance(numerator, unicode):
                 numerator, denominator, is_normalised = _parse_fraction(
                     <unicode>numerator, len(<unicode>numerator))
-                if is_normalised:
-                    _normalize = False
-                # fall through to normalisation below
-
-            elif PY_MAJOR_VERSION < 3 and isinstance(numerator, bytes):
-                numerator, denominator, is_normalised = _parse_fraction(
-                    <bytes>numerator, len(<bytes>numerator))
                 if is_normalised:
                     _normalize = False
                 # fall through to normalisation below
@@ -496,9 +485,6 @@ cdef class Fraction:
                 raise TypeError("argument should be a string or a number")
 
         elif type(numerator) is int is type(denominator):
-            pass  # *very* normal case
-
-        elif PY_MAJOR_VERSION < 3 and type(numerator) is long is type(denominator):
             pass  # *very* normal case
 
         elif type(numerator) is Fraction is type(denominator):
@@ -675,10 +661,8 @@ cdef class Fraction:
         """str(self)"""
         if self._denominator == 1:
             return str(self._numerator)
-        elif PY_MAJOR_VERSION > 2:
-            return f'{self._numerator}/{self._denominator}'
         else:
-            return '%s/%s' % (self._numerator, self._denominator)
+            return f'{self._numerator}/{self._denominator}'
 
     @cython.final
     cdef _format_general(self, dict match):
@@ -1065,23 +1049,6 @@ cdef class Fraction:
 
         cdef Py_hash_t result
 
-        # Py2 and Py3 use completely different hash functions, we provide both
-        if PY_MAJOR_VERSION == 2:
-            if self._denominator == 1:
-                # Get integers right.
-                result = hash(self._numerator)
-            else:
-                # Expensive check, but definitely correct.
-                float_val = _as_float(self._numerator, self._denominator)
-                if self == float_val:
-                    result = hash(float_val)
-                else:
-                    # Use tuple's hash to avoid a high collision rate on
-                    # simple fractions.
-                    result = hash((self._numerator, self._denominator))
-            self._hash = result
-            return result
-
         # In order to make sure that the hash of a Fraction agrees
         # with the hash of a numerically equal integer, float or
         # Decimal instance, we follow the rules for numeric hashes
@@ -1205,8 +1172,6 @@ cdef class Fraction:
         else:
             # comparisons with complex should raise a TypeError, for consistency
             # with int<->complex, float<->complex, and complex<->complex comparisons.
-            if PY_MAJOR_VERSION < 3 and isinstance(other, complex):
-                raise TypeError("no ordering relation is defined for complex numbers")
             return NotImplemented
 
         if op == Py_LT:
@@ -1520,7 +1485,7 @@ cdef forward(a, b, math_func monomorphic_operator, pyoperator, handle_complex=Tr
     an, ad = (<Fraction>a)._numerator, (<Fraction>a)._denominator
     if type(b) is Fraction:
         return monomorphic_operator(an, ad, (<Fraction>b)._numerator, (<Fraction>b)._denominator)
-    elif isinstance(b, (int, long)):
+    elif isinstance(b, int):
         return monomorphic_operator(an, ad, b, 1)
     elif isinstance(b, (Fraction, Rational)):
         return monomorphic_operator(an, ad, b.numerator, b.denominator)
@@ -1534,7 +1499,7 @@ cdef forward(a, b, math_func monomorphic_operator, pyoperator, handle_complex=Tr
 
 cdef reverse(a, b, math_func monomorphic_operator, pyoperator, handle_complex=True):
     bn, bd = (<Fraction>b)._numerator, (<Fraction>b)._denominator
-    if isinstance(a, (int, long)):
+    if isinstance(a, int):
         return monomorphic_operator(a, 1, bn, bd)
     elif isinstance(a, Rational):
         return monomorphic_operator(a.numerator, a.denominator, bn, bd)
@@ -1591,8 +1556,6 @@ cdef _raise_invalid_input(s):
     s = repr(s)
     if s[:2] in ('b"', "b'"):
         s = s[1:]
-    elif PY_MAJOR_VERSION ==2 and s[:2] in ('u"', "u'"):
-        s = s[1:]
     raise ValueError(f'Invalid literal for Fraction: {s}') from None
 
 
@@ -1605,33 +1568,18 @@ cdef _raise_parse_overflow(s):
 
 cdef extern from *:
     """
-    static CYTHON_INLINE int __QUICKTIONS_unpack_string(
+    static CYTHON_INLINE int __QUICKTIONS_unpack_ustring(
             PyObject* string, Py_ssize_t *length, void** data, int *kind) {
-        if (PyBytes_Check(string)) {
-            *kind   = 1;
-            *length = PyBytes_GET_SIZE(string);
-            *data   = PyBytes_AS_STRING(string);
-        } else {
-        #if CYTHON_PEP393_ENABLED
-            if (PyUnicode_READY(string) < 0) return -1;
-            *kind   = PyUnicode_KIND(string);
-            *length = PyUnicode_GET_LENGTH(string);
-            *data   = PyUnicode_DATA(string);
-        #else
-            *kind   = 0;
-            *length = PyUnicode_GET_SIZE(string);
-            *data   = (void*)PyUnicode_AS_UNICODE(string);
-        #endif
-        }
+        if (PyUnicode_READY(string) < 0) return -1;
+        *kind   = PyUnicode_KIND(string);
+        *length = PyUnicode_GET_LENGTH(string);
+        *data   = PyUnicode_DATA(string);
         return 0;
     }
-    #if PY_MAJOR_VERSION < 3
-    #define PyUnicode_READ(k, d, i) ((Py_UCS4) ((Py_UNICODE*) d) [i])
-    #endif
     #define __QUICKTIONS_char_at(data, kind, index) \
         (((kind == 1) ? (Py_UCS4) ((char*) data)[index] : (Py_UCS4) PyUnicode_READ(kind, data, index)))
     """
-    int _unpack_string "__QUICKTIONS_unpack_string" (
+    int _unpack_ustring "__QUICKTIONS_unpack_ustring" (
         object string, Py_ssize_t *length, void **data, int *kind) except -1
     Py_UCS4 _char_at "__QUICKTIONS_char_at" (void *data, int kind, Py_ssize_t index)
     Py_UCS4 PyUnicode_READ(int kind, void *data, Py_ssize_t index)
@@ -1687,7 +1635,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
     cdef char* cdata = NULL
 
     if AnyString is unicode:
-        _unpack_string(s, &s_len, &s_data, &s_kind)
+        _unpack_ustring(s, &s_len, &s_data, &s_kind)
         if s_kind == 1:
             return _parse_fraction(<char*> s_data, s_len)
         cdata = <char*> s_data
