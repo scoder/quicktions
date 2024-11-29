@@ -12,7 +12,7 @@ given the cdecimal accelerator in Python 3.3+.
 `Cython <https://cython.org/>`_ into a fast, native extension module.
 
 Compared to the standard library ``fractions`` module of CPython 3.12,
-computations in ``quicktions`` are about 3-4x faster.
+computations in ``quicktions`` are about 2-4x faster.
 
 Instantiation of a ``Fraction`` in ``quicktions`` is also
 
