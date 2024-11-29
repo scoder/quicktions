@@ -9,6 +9,9 @@ ChangeLog
 * Generally use ``.as_integer_ratio()`` in the constructor if available.
   https://github.com/python/cpython/pull/120271
 
+* Add a classmethod ``.from_number()`` that requires a number argument, not a string.
+  https://github.com/python/cpython/pull/121800
+
 * Mixed calculations with other ``Rational`` classes could return the wrong type.
   https://github.com/python/cpython/issues/119189
 

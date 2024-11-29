@@ -482,7 +482,8 @@ cdef class Fraction:
                 return
 
             else:
-                raise TypeError("argument should be a string or a number")
+                raise TypeError("argument should be a string or a Rational "
+                                "instance or have the as_integer_ratio() method")
 
         elif type(numerator) is int is type(denominator):
             pass  # *very* normal case
@@ -525,6 +526,34 @@ cdef class Fraction:
                 denominator //= g
         self._numerator = numerator
         self._denominator = denominator
+
+    @classmethod
+    def from_number(cls, number):
+        """Converts a finite real number to a rational number, exactly.
+
+        Beware that Fraction.from_number(0.3) != Fraction(3, 10).
+
+        """
+        if type(number) is int:
+            return _fraction_from_coprime_ints(number, 1, cls)
+
+        elif type(number) is Fraction:
+            return _fraction_from_coprime_ints((<Fraction> number)._numerator, (<Fraction> number)._denominator, cls)
+
+        elif isinstance(number, float):
+            n, d = number.as_integer_ratio()
+            return _fraction_from_coprime_ints(n, d, cls)
+
+        elif isinstance(number, Rational):
+            return _fraction_from_coprime_ints(number.numerator, number.denominator, cls)
+
+        elif not isinstance(number, type) and hasattr(number, 'as_integer_ratio'):
+            n, d = number.as_integer_ratio()
+            return _fraction_from_coprime_ints(n, d, cls)
+
+        else:
+            raise TypeError("argument should be a Rational instance or "
+                            "have the as_integer_ratio() method")
 
     @classmethod
     def from_float(cls, f):
