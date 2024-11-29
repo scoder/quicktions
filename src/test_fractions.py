@@ -41,6 +41,8 @@ import quicktions
 F = quicktions.Fraction
 gcd = quicktions._gcd
 
+requires_py310 = unittest.skipIf(sys.version_info <= (3, 10), "needs Python 3.10+")
+
 #locate file with float format test values
 test_dir = os.path.dirname(__file__) or os.curdir
 format_testfile = os.path.join(test_dir, 'formatfloat_testcases.txt')
@@ -1860,6 +1862,7 @@ class FractionTest(unittest.TestCase):
                     self.assertEqual(float(format(f, fmt2)), float(rhs))
                     self.assertEqual(float(format(-f, fmt2)), float('-' + rhs))
 
+    @requires_py310
     def test_complex_handling(self):
         # See issue gh-102840 for more details.
 
@@ -1887,6 +1890,7 @@ class FractionTest(unittest.TestCase):
                                  message % ("divmod()", "complex", "quicktions.Fraction"),
                                  divmod, b, a)
 
+    @requires_py310
     def test_three_argument_pow(self):
         message = "unsupported operand type(s) for ** or pow(): '%s', '%s', '%s'"
         self.assertRaisesMessage(TypeError,
