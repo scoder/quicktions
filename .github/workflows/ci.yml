@@ -88,8 +88,6 @@ jobs:
 
         include:
           - image: manylinux_2_24_aarch64
-            pyversion: "cp37"
-          - image: manylinux_2_24_aarch64
             pyversion: "cp38"
           - image: manylinux_2_24_aarch64
             pyversion: "cp39"
@@ -122,12 +120,6 @@ jobs:
 
     - name: Copy wheels in dist
       run: cp -v wheelhouse*/*-m*linux*.whl dist/  # manylinux / musllinux
-
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      if: github.ref_type == 'tag'
-      with:
-        files: dist/*cp27*.whl, dist/*cp35*.whl, dist/*cp36*.whl
 
     - name: Archive Wheels
       uses: actions/upload-artifact@v4

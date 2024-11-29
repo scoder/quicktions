@@ -3,7 +3,7 @@ requires = ["Cython>=3.0.10, < 3.1.0", "setuptools", "wheel"]
 
 [tool.cibuildwheel]
 build-verbosity = 2
-skip = ["pp*", "*-musllinux_i686"]
+skip = ["pp*", "*-musllinux_i686", "cp35*", "cp36*", "cp37*"]
 # test-command = "python -m unittest {package}/test_fractions.py -p -v"
 
 [tool.cibuildwheel.linux]
@@ -38,4 +38,5 @@ archs = ["AMD64", "x86"]
 # https://cibuildwheel.readthedocs.io/en/stable/faq/#what-to-provide suggests to provide
 # x86_64 and one of universal2 or arm64 wheels.  x86_64 is still required by older pips,
 # so additional arm64 wheels suffice.
+#archs = ["x86_64", "universal2"]
 archs = ["x86_64", "arm64"]
