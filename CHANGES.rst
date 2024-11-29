@@ -1,10 +1,10 @@
 ChangeLog
 =========
 
-1.19 (2024-??-??)
+1.19 (2024-11-29)
 -----------------
 
-* Support for Python 2.7 as well as 3.7 and earlier has been discontinued.
+* Support for Python 2.7 as well as 3.7 and earlier has been removed.
 
 * Generally use ``.as_integer_ratio()`` in the constructor if available.
   https://github.com/python/cpython/pull/120271
@@ -21,6 +21,8 @@ ChangeLog
 
 * Using ``complex`` numbers in division shows better tracebacks.
   https://github.com/python/cpython/pull/102842
+
+* Subclass instantiations and calculations could fail in some cases.
 
 
 1.18 (2024-04-03)
