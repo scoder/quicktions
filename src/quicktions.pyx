@@ -1224,7 +1224,7 @@ cdef _fraction_from_coprime_ints(numerator, denominator, cls=None):
     if cls is None or cls is Fraction:
         obj = Fraction.__new__(Fraction, NOINIT, NOINIT)
     else:
-        obj = super(Fraction, cls).__new__(cls)
+        obj = cls.__new__(cls)
     obj._numerator = numerator
     obj._denominator = denominator
     return obj
