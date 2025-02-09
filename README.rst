@@ -30,16 +30,16 @@ as follows in CPython 3.12 (measured on Ubuntu Linux):
 .. code-block::
 
     Average times for all 'create' benchmarks:
-    float               :    33.55 us (1.0x)
-    Fraction            :   116.02 us (3.5x)
-    Decimal             :   132.22 us (3.9x)
-    PyFraction          :   361.93 us (10.8x)
+    float               :    19.69 us (1.0x)
+    Fraction            :    58.63 us (3.0x)
+    Decimal             :    84.32 us (4.3x)
+    PyFraction          :   208.20 us (10.6x)
 
     Average times for all 'compute' benchmarks:
-    float               :     3.24 us (1.0x)
-    Decimal             :    17.28 us (5.3x)
-    Fraction            :    77.04 us (23.8x)
-    PyFraction          :   166.38 us (51.2x)
+    float               :     1.79 us (1.0x)
+    Decimal             :    10.11 us (5.7x)
+    Fraction            :    39.24 us (22.0x)
+    PyFraction          :    96.23 us (53.9x)
 
 While not as fast as the C implemented ``decimal`` module in Python 3,
 ``quicktions`` is about 15x faster than the Python implemented ``decimal``
