@@ -91,8 +91,6 @@ jobs:
         os: ["ubuntu-latest"]
 
         include:
-          - image: manylinux_2_24_aarch64
-            os: ubuntu-24.04-arm
           - image: manylinux_2_34_aarch64
             os: ubuntu-24.04-arm
 
