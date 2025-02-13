@@ -120,7 +120,7 @@ jobs:
 
     - name: Building wheel
       run: |
-        make PYTHON_WHEEL_BUILD_VERSION="{{ matrix.pyversion }}*" sdist wheel_${{ matrix.image }}
+        make PYTHON_WHEEL_BUILD_VERSION="${{ matrix.pyversion }}*" sdist wheel_${{ matrix.image }}
 
     - name: Copy wheels in dist
       run: cp -v wheelhouse*/*-m*linux*.whl dist/  # manylinux / musllinux
@@ -128,7 +128,7 @@ jobs:
     - name: Archive Wheels
       uses: actions/upload-artifact@v4
       with:
-        name: wheels-${{ matrix.image }}-{{ matrix.pyversion }}
+        name: wheels-${{ matrix.image }}-${{ matrix.pyversion }}
         path: dist/*.whl
         if-no-files-found: ignore
 
