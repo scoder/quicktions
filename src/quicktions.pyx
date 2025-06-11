@@ -531,11 +531,11 @@ cdef class Fraction:
         Beware that Fraction.from_number(0.3) != Fraction(3, 10).
 
         """
-        if type(number) is int:
-            return _fraction_from_coprime_ints(number, 1, cls)
-
-        elif type(number) is Fraction:
+        if type(number) is Fraction:
             return _fraction_from_coprime_ints((<Fraction> number)._numerator, (<Fraction> number)._denominator, cls)
+
+        elif isinstance(number, int):
+            return _fraction_from_coprime_ints(number, 1, cls)
 
         elif isinstance(number, float):
             n, d = number.as_integer_ratio()
