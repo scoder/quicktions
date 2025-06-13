@@ -8,7 +8,7 @@ enable = "cpython-freethreading cpython-prerelease
 # test-command = "python -m unittest {package}/test_fractions.py -p -v"
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64", "aarch64", "i686"]
+archs = ["x86_64", "aarch64", "i686", "armv7l"]
 repair-wheel-command = "auditwheel repair --strip -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.linux.environment]
