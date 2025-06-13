@@ -103,17 +103,44 @@ cdef extern from *:
         #define _PyLong_GCD(a, b) (NULL)
     #endif
 
-    #if defined(__GCC__) && __has_builtin(__builtin_ctz) && __has_builtin(__builtin_ctzl) && __has_builtin(__builtin_ctzll)
+    #ifdef __has_builtin
+      #if __has_builtin(__builtin_ctz) && __has_builtin(__builtin_ctzl) && __has_builtin(__builtin_ctzll)
         #define __Quicktions_HAS_FAST_CTZ  1
         #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
         #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
-    #elif defined(__clang__) && __has_builtin(__builtin_ctzg)
+      #elif __has_builtin(__builtin_ctzg)
         #define __Quicktions_HAS_FAST_CTZ  1
         #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctzg(x)
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzg(x)
         #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzg(x)
-    #else
+      #endif
+    #elif defined(__GNUC__)
+        #define __Quicktions_HAS_FAST_CTZ  1
+        #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
+        #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
+        #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
+    #elif defined(_MSC_VER) && SIZEOF_INT == 4 && SIZEOF_LONG == 4 && SIZEOF_LONG_LONG == 8
+        /* Typical Windows config. */
+        #define __Quicktions_HAS_FAST_CTZ  1
+        #pragma intrinsic(_BitScanForward, _BitScanForward64)
+        static CYTHON_INLINE int __Quicktions_trailing_zeros_uint(uint32_t x) {
+            unsigned long bits;
+            _BitScanForward(&bits, x);
+            return (int) bits;
+        }
+        static CYTHON_INLINE int __Quicktions_trailing_zeros_ulong(uint32_t x) {
+            unsigned long bits;
+            _BitScanForward(&bits, x);
+            return (int) bits;
+        }
+        static CYTHON_INLINE int __Quicktions_trailing_zeros_ullong(uint64_t x) {
+            unsigned long bits;
+            _BitScanForward64(&bits, x);
+            return (int) bits;
+        }
+    #endif
+    #if !defined(__Quicktions_HAS_FAST_CTZ)
         #define __Quicktions_HAS_FAST_CTZ  0
         #define __Quicktions_trailing_zeros_uint(x)    (0)
         #define __Quicktions_trailing_zeros_ulong(x)   (0)
