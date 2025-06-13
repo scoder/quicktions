@@ -1975,7 +1975,11 @@ class QuicktionsTest(unittest.TestCase):
             (63, 64),
             (64, 70),
             (128, 511),
-        ]]
+        ]] + ["%s/%s" % (a, b) for a, b in itertools.permutations([
+            sys.maxsize // n + i
+            for i in range(-3, +3)
+            for n in (1, 2, 4, 10, 100)
+        ], 2)]
         values = [
             v for value in values
             for v in ([value, value.replace('/', '.'), value.replace('/', '.') + "E" + value[:4]]

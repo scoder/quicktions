@@ -1790,6 +1790,8 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len, orig_str):
                 break
             pos += 1
 
+        # Start fresh digits collection.
+        c_digits = c_digits_start
         while pos < s_len:
             c = _char_at(s_data, s_kind, pos) if AnyString is unicode else cdata[pos]
             pos += 1
