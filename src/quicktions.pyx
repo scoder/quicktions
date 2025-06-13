@@ -115,8 +115,8 @@ cdef extern from *:
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzg(x)
         #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzg(x)
       #endif
-    #elif defined(_MSC_VER) && SIZEOF_INT == 4 && SIZEOF_LONG_LONG == 8
-        /* Typical Windows config. */
+    #elif defined(_MSC_VER) && defined(_WIN64) && SIZEOF_INT == 4 && SIZEOF_LONG_LONG == 8
+        /* Typical Windows64 config (Win32 does not define "_BitScanForward64"). */
         #define __Quicktions_HAS_FAST_CTZ  1
         #pragma intrinsic(_BitScanForward, _BitScanForward64)
         static CYTHON_INLINE int __Quicktions_trailing_zeros_uint(uint32_t x) {
