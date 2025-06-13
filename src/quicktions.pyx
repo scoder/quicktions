@@ -382,9 +382,9 @@ cdef object _FLOAT_FORMAT_SPECIFICATION_MATCHER = re.compile(r"""
     # A '0' that's *not* followed by another digit is parsed as a minimum width
     # rather than a zeropad flag.
     (?P<zeropad>0(?=[0-9]))?
-    (?P<minimumwidth>0|[1-9][0-9]*)?
+    (?P<minimumwidth>[0-9]+)?
     (?P<thousands_sep>[,_])?
-    (?:\.(?P<precision>0|[1-9][0-9]*))?
+    (?:\.(?P<precision>[0-9]+))?
     (?P<presentation_type>[eEfFgG%])
     $
 """, re.DOTALL | re.VERBOSE).match
@@ -451,8 +451,8 @@ cdef class Fraction:
                 return
 
             elif isinstance(numerator, unicode):
-                numerator, denominator, is_normalised = _parse_fraction(
-                    <unicode>numerator, len(<unicode>numerator))
+                numerator, denominator, is_normalised = _parse_fraction[unicode](
+                    <unicode>numerator, len(<unicode>numerator), numerator)
                 if is_normalised:
                     _normalize = False
                 # fall through to normalisation below
@@ -947,7 +947,7 @@ cdef class Fraction:
         if x is not None:
             return NotImplemented
 
-        if isinstance(b, (int, long)):
+        if isinstance(b, int):
             return _pow(a.numerator, a.denominator, b, 1)
         elif isinstance(b, (Fraction, Rational)):
             return _pow(a.numerator, a.denominator, b.numerator, b.denominator)
@@ -971,7 +971,7 @@ cdef class Fraction:
             # If a is an int, keep it that way if possible.
             return a ** bn
 
-        if isinstance(a, (int, long)):
+        if isinstance(a, int):
             return _pow(a, 1, bn, bd)
         if isinstance(a, (Fraction, Rational)):
             return _pow(a.numerator, a.denominator, bn, bd)
@@ -1152,7 +1152,7 @@ cdef class Fraction:
 
     @cython.final
     cdef _eq(a, b):
-        if type(b) is int or type(b) is long:
+        if type(b) is int:
             return a._numerator == b and a._denominator == 1
         if type(b) is Fraction:
             return (a._numerator == (<Fraction>b)._numerator and
@@ -1183,7 +1183,7 @@ cdef class Fraction:
 
         """
         # convert other to a Rational instance where reasonable.
-        if isinstance(other, (int, long)):
+        if isinstance(other, int):
             a = self._numerator
             b = self._denominator * other
         elif type(other) is Fraction:
@@ -1591,7 +1591,7 @@ cdef _raise_parse_overflow(s):
     s = repr(s)
     if s[0] == 'b':
         s = s[1:]
-    raise OverflowError(f"Exponent too large for Fraction: {s!s}") from None
+    raise ValueError(f"Exponent too large for Fraction: {s}") from None
 
 
 cdef extern from *:
@@ -1639,7 +1639,7 @@ cdef inline object _parse_pylong(char* c_digits_start, char** c_digits_end):
 
 
 @cython.cdivision(True)
-cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
+cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len, orig_str):
     """
     Parse a string into a number tuple: (numerator, denominator, is_normalised)
     """
@@ -1665,7 +1665,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
     if AnyString is unicode:
         _unpack_ustring(s, &s_len, &s_data, &s_kind)
         if s_kind == 1:
-            return _parse_fraction(<char*> s_data, s_len)
+            return _parse_fraction(<char*> s_data, s_len, orig_str)
         cdata = <char*> s_data
         cdata += 0  # mark used
     else:
@@ -1689,7 +1689,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                 elif state in (NUM, NUM_SPACE):
                     num = _parse_pylong(c_digits_start, &c_digits)
                 else:
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                 state = DENOM_START
                 break
             elif c == u'.':
@@ -1700,7 +1700,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                 elif state == NUM:
                     state = DECIMAL_DOT
                 else:
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                 break
             elif c in u'eE':
                 if state == SMALL_NUM:
@@ -1708,7 +1708,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                 elif state == NUM:
                     num = _parse_pylong(c_digits_start, &c_digits)
                 else:
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                 state = EXP_E
                 break
             elif c in u'-+':
@@ -1716,7 +1716,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     is_neg = c == u'-'
                     state = BEGIN_SIGN
                 else:
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                 continue
             elif c == u'_':
                 if state == SMALL_NUM:
@@ -1724,7 +1724,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                 elif state == NUM:
                     state = NUM_US
                 else:
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                 continue
             else:
                 if c.isspace():
@@ -1743,10 +1743,10 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                         num = _parse_pylong(c_digits_start, &c_digits)
                         state = NUM_SPACE
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     continue
 
-                _raise_invalid_input(s)
+                _raise_invalid_input(orig_str)
                 continue
 
         # normal digit found
@@ -1780,7 +1780,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     break
                 pos += 1
         else:
-            _raise_invalid_input(s)
+            _raise_invalid_input(orig_str)
 
     if state == DENOM_START:
         # NUM '/'  |  SMALL_NUM '/'
@@ -1800,7 +1800,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                         is_neg ^= (c == u'-')
                         state = DENOM_SIGN
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     continue
                 elif c == u'_':
                     if state == SMALL_DENOM:
@@ -1808,7 +1808,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     elif state == DENOM:
                         state = DENOM_US
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     continue
                 else:
                     if c.isspace():
@@ -1825,11 +1825,11 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                         elif state == DENOM:
                             denom = _parse_pylong(c_digits_start, &c_digits)
                         else:
-                            _raise_invalid_input(s)
+                            _raise_invalid_input(orig_str)
                         state = DENOM_SPACE
                         continue
 
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                     continue
 
             # normal digit found
@@ -1863,7 +1863,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                         break
                     pos += 1
             else:
-                _raise_invalid_input(s)
+                _raise_invalid_input(orig_str)
 
     elif state in (SMALL_DECIMAL_DOT, START_DECIMAL_DOT):
         # SMALL_NUM '.'  | '.'
@@ -1876,13 +1876,13 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     if state == SMALL_DECIMAL:
                         state = SMALL_DECIMAL_US
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     continue
                 elif c in u'eE':
                     if state in (SMALL_DECIMAL_DOT, SMALL_DECIMAL):
                         num = inum
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     state = EXP_E
                     break
                 else:
@@ -1897,10 +1897,10 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                             num = inum
                             state = SMALL_END_SPACE
                         else:
-                            _raise_invalid_input(s)
+                            _raise_invalid_input(orig_str)
                         continue
 
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                     continue
 
             # normal digit found
@@ -1923,7 +1923,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     state = DECIMAL
                     break
             else:
-                _raise_invalid_input(s)
+                _raise_invalid_input(orig_str)
 
     if state in (DECIMAL_DOT, DECIMAL):
         # NUM '.'  |  SMALL_DECIMAL->DECIMAL
@@ -1936,13 +1936,13 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     if state == DECIMAL:
                         state = DECIMAL_US
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     continue
                 elif c in u'eE':
                     if state in (DECIMAL_DOT, DECIMAL):
                         num = _parse_pylong(c_digits_start, &c_digits)
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     state = EXP_E
                     break
                 else:
@@ -1950,10 +1950,10 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                         if state in (DECIMAL, DECIMAL_DOT):
                             state = END_SPACE
                         else:
-                            _raise_invalid_input(s)
+                            _raise_invalid_input(orig_str)
                         break
 
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                     continue
 
             # normal digit found
@@ -1970,7 +1970,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     decimal_len += 1
                     pos += 1
             else:
-                _raise_invalid_input(s)
+                _raise_invalid_input(orig_str)
 
     if state == EXP_E:
         # (SMALL_) NUM ['.' DECIMAL] 'E'
@@ -1984,23 +1984,23 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                         exp_is_neg = c == u'-'
                         state = EXP_SIGN
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     continue
                 elif c == u'_':
                     if state == EXP:
                         state = EXP_US
                     else:
-                        _raise_invalid_input(s)
+                        _raise_invalid_input(orig_str)
                     continue
                 else:
                     if c.isspace():
                         if state == EXP:
                             state = END_SPACE
                         else:
-                            _raise_invalid_input(s)
+                            _raise_invalid_input(orig_str)
                         break
 
-                    _raise_invalid_input(s)
+                    _raise_invalid_input(orig_str)
                     continue
 
             # normal digit found
@@ -2018,9 +2018,9 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
                     pos += 1
 
                 if iexp > MAX_SMALL_NUMBER:
-                    _raise_parse_overflow(s)
+                    _raise_parse_overflow(orig_str)
             else:
-                _raise_invalid_input(s)
+                _raise_invalid_input(orig_str)
 
     if state in (END_SPACE, SMALL_END_SPACE, DENOM_SPACE):
         while pos < s_len:
@@ -2030,7 +2030,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
             pos += 1
 
     if pos < s_len :
-        _raise_invalid_input(s)
+        _raise_invalid_input(orig_str)
 
     is_normalised = False
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
@@ -2067,10 +2067,10 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len):
     elif state == DENOM_SPACE:
         pass
     else:
-        _raise_invalid_input(s)
+        _raise_invalid_input(orig_str)
 
     if decimal_len > MAX_SMALL_NUMBER:
-        _raise_parse_overflow(s)
+        _raise_parse_overflow(orig_str)
     if exp_is_neg:
         iexp = -iexp
     iexp -= decimal_len

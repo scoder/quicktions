@@ -1,6 +1,20 @@
 ChangeLog
 =========
 
+1.20 (2025-??-??)
+-----------------
+
+* Accept leading zeros in precision/width for Fraction's formatting, following
+  https://github.com/python/cpython/pull/130663
+
+* In line with Python's ``Fraction``, quicktions now raises a ``ValueError``
+  (instead of an ``OverflowError``) when exceeding parser limits, following
+  https://github.com/python/cpython/pull/134010
+
+* Call ``__rpow__`` in ternary ``pow()`` if necessary, following
+  https://github.com/python/cpython/pull/130251
+
+
 1.19 (2024-11-29)
 -----------------
 
