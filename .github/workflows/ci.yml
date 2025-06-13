@@ -152,9 +152,9 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
-          # Py3.13 currently fails to build on Windows:
+          # Py3.13.4 currently fails to build on Windows:
           # https://discuss.python.org/t/heads-up-3-13-5-release-coming-soon/94535
-          #- "3.13"
+          - "3.13.5"
           - "3.13t"
           - "3.14-dev"
           - "3.14t-dev"
