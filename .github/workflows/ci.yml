@@ -146,7 +146,18 @@ jobs:
 
       matrix:
         os: [macos-13, windows-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.13t", "3.14-dev", "3.14t-dev"]
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          # Py3.13 currently fails to build on Windows:
+          # https://discuss.python.org/t/heads-up-3-13-5-release-coming-soon/94535
+          #- "3.13"
+          - "3.13t"
+          - "3.14-dev"
+          - "3.14t-dev"
 
         #include:
         #  - python-version: "3.14-dev"
@@ -169,7 +180,7 @@ jobs:
         python -m pip install --pre -r requirements.txt
 
     - name: Build wheels
-      run: make ${{ matrix.python-version == '3.13' && 'CFLAGS="$CFLAGS -DPy_GIL_DISABLED=0"' || '' }} sdist wheel
+      run: make sdist wheel
 
     - name: Run slow tests
       run: make testslow
