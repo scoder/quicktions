@@ -1,9 +1,10 @@
 [build-system]
-requires = ["Cython>=3.0.10, < 3.1.0", "setuptools", "wheel"]
+requires = ["Cython>=3.1.2", "setuptools", "wheel"]
 
 [tool.cibuildwheel]
 build-verbosity = 2
 skip = ["pp*", "*-musllinux_i686", "cp35*", "cp36*", "cp37*"]
+enable = "cpython-prerelease"
 # test-command = "python -m unittest {package}/test_fractions.py -p -v"
 
 [tool.cibuildwheel.linux]
