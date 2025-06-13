@@ -169,7 +169,7 @@ jobs:
         python -m pip install --pre -r requirements.txt
 
     - name: Build wheels
-      run: make ${{ matrix.python-version == "3.13" && 'CFLAGS="$CFLAGS -DPy_GIL_DISABLED=0"' || "" }} sdist wheel
+      run: make ${{ matrix.python-version == '3.13' && 'CFLAGS="$CFLAGS -DPy_GIL_DISABLED=0"' || '' }} sdist wheel
 
     - name: Run slow tests
       run: make testslow
