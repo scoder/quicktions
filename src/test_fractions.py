@@ -26,8 +26,8 @@ try:
 except ImportError:
     @contextlib.contextmanager
     def adjust_int_max_str_digits(max_digits):
-        if not hasattr(sys, 'set_int_max_str_digits'):
-            unittest.skip("needs sys.set_int_max_str_digits()")
+        if not hasattr(sys, 'get_int_max_str_digits'):
+            raise unittest.SkipTest("needs sys.set_int_max_str_digits()")
         old_max = sys.get_int_max_str_digits()
         sys.set_int_max_str_digits(max_digits)
         try:
