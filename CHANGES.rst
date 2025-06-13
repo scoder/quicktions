@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.20 (2025-??-??)
+1.20 (2025-06-13)
 -----------------
 
 * ``quicktions`` is compatible with freethreading Python (3.13+).
@@ -15,6 +15,8 @@ ChangeLog
 
 * Call ``__rpow__`` in ternary ``pow()`` if necessary, following
   https://github.com/python/cpython/pull/130251
+
+* Built using Cython 3.1.2.
 
 
 1.19 (2024-11-29)
