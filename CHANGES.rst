@@ -8,6 +8,8 @@ ChangeLog
   as final denominator when parsing "x/y" where x or y are close to ``sys.maxsize``,
   thus returning a ``Fraction("x/xy")``.
 
+* MSVC and clang now also benefit from fast "count trailing zeroes" intrinsics.
+
 
 1.20 (2025-06-13)
 -----------------

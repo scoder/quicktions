@@ -23,7 +23,7 @@ This is an almost-drop-in replacement for the standard library's
 
 __all__ = ['Fraction']
 
-__version__ = '1.20'
+__version__ = '1.21'
 
 cimport cython
 from cpython.unicode cimport Py_UNICODE_TODECIMAL
