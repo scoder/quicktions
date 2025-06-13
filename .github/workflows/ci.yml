@@ -83,7 +83,7 @@ jobs:
         date; echo "Running telco benchmark ..."
         python benchmark/telco_fractions.py -n 250
         date; echo "Running micro benchmarks ..."
-        python benchmark/microbench.py create pydigits
+        python benchmark/microbench.py create pidigits
         date; echo "Done."
 
   Linux:
@@ -198,8 +198,12 @@ jobs:
 
     - name: Running benchmark
       run: |
+        # Run different benchmarks.
+        date; echo "Running telco benchmark ..."
         python benchmark/telco_fractions.py -n 250
-        python benchmark/microbench.py create pydigits
+        date; echo "Running micro benchmarks ..."
+        python benchmark/microbench.py create pidigits
+        date; echo "Done."
 
   merge-wheels:
     needs: [ Linux, non-Linux ]
