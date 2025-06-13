@@ -4,6 +4,8 @@ ChangeLog
 1.20 (2025-??-??)
 -----------------
 
+* ``quicktions`` is compatible with freethreading Python (3.13+).
+
 * Accept leading zeros in precision/width for Fraction's formatting, following
   https://github.com/python/cpython/pull/130663
 

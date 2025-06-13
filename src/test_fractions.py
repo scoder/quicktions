@@ -2007,7 +2007,7 @@ print("Fuzzer uses %d values." % len(_fuzzer_values))
 
 
 class FuzzerTest(unittest.TestCase):
-    def test_fuzzing_equal(self):
+    def test_fuzzing_equal(self, _fuzzer_values=_fuzzer_values):
         Fraction = fractions.Fraction
         for n, d in itertools.combinations(_fuzzer_values, 2):
             f = Fraction(n, d)
@@ -2015,7 +2015,7 @@ class FuzzerTest(unittest.TestCase):
             self.assertEqual(f, q, "Fraction(%d, %d) == %r != %r == Quicktion(%d, %d)" % (
                 n, d, f, q, n, d))
 
-    def test_fuzzing_arithmetic(self):
+    def test_fuzzing_arithmetic(self, _fuzzer_values=_fuzzer_values):
         try:
             _gcd = math.gcd
         except AttributeError:
@@ -2055,6 +2055,26 @@ class FuzzerTest(unittest.TestCase):
             compare(q1 / q2, n_d2, n_d1)
             compare(q2 / q1, n_d1, n_d2)
             compare(q1 / q3, n_d2, n3_d1)
+
+    def test_threading(self):
+        import threading
+        num_threads = 8
+        start = threading.Barrier(num_threads)
+
+        def run_test(tid):
+            fuzzer_values = _fuzzer_values[tid::num_threads // 2]
+            start.wait()
+            self.test_fuzzing_equal(fuzzer_values)
+            self.test_fuzzing_arithmetic(fuzzer_values)
+
+        threads = [
+            threading.Thread(target=run_test, args=(i,))
+            for i in range(num_threads)
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
 
 def test_main():
