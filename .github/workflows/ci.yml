@@ -79,8 +79,12 @@ jobs:
     - name: Running benchmark
       if: startsWith(matrix.python-version, '3.')
       run: |
+        # Run different benchmarks.
+        date; echo "Running telco benchmark ..."
         python benchmark/telco_fractions.py -n 250
+        date; echo "Running micro benchmarks ..."
         python benchmark/microbench.py create pydigits
+        date; echo "Done."
 
   Linux:
 
