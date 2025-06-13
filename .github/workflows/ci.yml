@@ -46,9 +46,9 @@ jobs:
         - "3.14-dev"
         os: ["ubuntu-latest"]
 
-        include:
-        - python-version: "3.7"
-          os: ubuntu-22.04
+        #include:
+        #- python-version: "3.7"
+        #  os: ubuntu-22.04
         #- python-version: "3.14-dev"
         #  allowed_failure: true
 
@@ -88,8 +88,6 @@ jobs:
 
       matrix:
         image:
-          - manylinux1_x86_64
-          - manylinux1_i686
           - manylinux_2_24_i686
           - manylinux_2_24_x86_64
           - manylinux_2_28_x86_64
