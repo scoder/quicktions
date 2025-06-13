@@ -35,7 +35,7 @@ cdef extern from *:
     cdef long long PY_LLONG_MIN, PY_LLONG_MAX
     cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
-cdef object Rational, Integral, Real, Complex, Decimal, math, operator, re, sys
+cdef object Rational, Integral, Real, Complex, Decimal, math, operator, re
 cdef object PY_MAX_LONG_LONG = PY_LLONG_MAX
 
 from numbers import Rational, Integral, Real, Complex
@@ -43,16 +43,9 @@ from decimal import Decimal
 import math
 import operator
 import re
-import sys
 
-cdef bint _decimal_supports_integer_ratio = hasattr(Decimal, "as_integer_ratio")  # Py3.6+
 cdef object _operator_index = operator.index
-cdef object math_gcd
-try:
-    math_gcd = math.gcd
-except AttributeError:
-    pass
-
+cdef object math_gcd = math.gcd
 
 # Cache widely used 10**x int objects.
 # Py3.12/Ubuntu64: sys.getsizeof(tuple[58]) == 512 bytes, tuple[91] == 768, tuple[123] == 1024
@@ -264,21 +257,15 @@ cdef _gcd_fallback(a, b):
 # Constants related to the hash implementation;  hash(x) is based
 # on the reduction of x modulo the prime _PyHASH_MODULUS.
 
-cdef Py_hash_t _PyHASH_MODULUS
-try:
-    _PyHASH_MODULUS = sys.hash_info.modulus
-except AttributeError:  # pre Py3.2
-    # adapted from pyhash.h in Py3.4
-    _PyHASH_MODULUS = (<Py_hash_t>1) << (61 if sizeof(Py_hash_t) >= 8 else 31) - 1
+from sys import hash_info
 
+cdef Py_hash_t _PyHASH_MODULUS = hash_info.modulus
 
 # Value to be used for rationals that reduce to infinity modulo
 # _PyHASH_MODULUS.
-cdef Py_hash_t _PyHASH_INF
-try:
-    _PyHASH_INF = sys.hash_info.inf
-except AttributeError:  # pre Py3.2
-    _PyHASH_INF = hash(float('+inf'))
+cdef Py_hash_t _PyHASH_INF = hash_info.inf
+
+del hash_info
 
 
 # Helpers for formatting
@@ -471,13 +458,7 @@ cdef class Fraction:
                 return
 
             elif isinstance(numerator, Decimal):
-                if _decimal_supports_integer_ratio:
-                    # Exact conversion
-                    self._numerator, self._denominator = numerator.as_integer_ratio()
-                else:
-                    value = Fraction.from_decimal(numerator)
-                    self._numerator = (<Fraction>value)._numerator
-                    self._denominator = (<Fraction>value)._denominator
+                self._numerator, self._denominator = numerator.as_integer_ratio()
                 return
 
             else:
@@ -590,18 +571,8 @@ cdef class Fraction:
         if dec.is_nan():
             raise ValueError(f"Cannot convert {dec} to {cls.__name__}.")
 
-        if _decimal_supports_integer_ratio:
-            num, denom = dec.as_integer_ratio()
-            return _fraction_from_coprime_ints(num, denom, cls)
-
-        sign, digits, exp = dec.as_tuple()
-        digits = int(''.join(map(str, digits)))
-        if sign:
-            digits = -digits
-        if exp >= 0:
-            return _fraction_from_coprime_ints(digits * pow10(exp), 1, cls)
-        else:
-            return cls(digits, pow10(-exp))
+        num, denom = dec.as_integer_ratio()
+        return _fraction_from_coprime_ints(num, denom, cls)
 
     def is_integer(self):
         """Return True if the Fraction is an integer."""
