@@ -365,4 +365,7 @@ if __name__ == '__main__':
     except AttributeError:
         pass
 
+    import platform
+    print(f"Running benchmarks with Python {platform.python_version()} on {platform.platform()}")
+
     main(*sys.argv[1:])
