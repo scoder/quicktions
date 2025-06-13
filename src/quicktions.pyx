@@ -164,7 +164,7 @@ cpdef _gcd(a, b):
         return _c_gcd(PyLong_CompactValueUnsigned(a), PyLong_CompactValueUnsigned(b))
     if PY_VERSION_HEX >= 0x030d0000:
         return math_gcd(a, b)
-    if PY_VERSION_HEX < 0x030500F0 or not HAS_PYLONG_GCD:
+    if not HAS_PYLONG_GCD:
         return _gcd_fallback(a, b)
     return _PyLong_GCD(a, b)
 
@@ -2032,7 +2032,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len, orig_str):
     if pos < s_len :
         _raise_invalid_input(orig_str)
 
-    is_normalised = False
+    cdef bint is_normalised = False
     if state in (SMALL_NUM, SMALL_DECIMAL, SMALL_DECIMAL_DOT, SMALL_END_SPACE):
         # Special case for 'small' numbers: normalise directly in C space.
         if inum and decimal_len:
@@ -2079,7 +2079,7 @@ cdef tuple _parse_fraction(AnyString s, Py_ssize_t s_len, orig_str):
         num *= pow10(iexp)
     elif iexp < 0:
         # Only need to normalise if the numerator contains factors of a power of 10 (2 or 5).
-        is_normalised = num & 1 and num % 5
+        is_normalised = num & 1 != 0 and num % 5 != 0
         denom = pow10(-iexp)
 
     if is_neg:
