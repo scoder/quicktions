@@ -115,21 +115,11 @@ cdef extern from *:
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzg(x)
         #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzg(x)
       #endif
-    #elif defined(__GNUC__)
-        #define __Quicktions_HAS_FAST_CTZ  1
-        #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
-        #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
-        #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
-    #elif defined(_MSC_VER) && SIZEOF_INT == 4 && SIZEOF_LONG == 4 && SIZEOF_LONG_LONG == 8
+    #elif defined(_MSC_VER) && SIZEOF_INT == 4 && SIZEOF_LONG_LONG == 8
         /* Typical Windows config. */
         #define __Quicktions_HAS_FAST_CTZ  1
         #pragma intrinsic(_BitScanForward, _BitScanForward64)
         static CYTHON_INLINE int __Quicktions_trailing_zeros_uint(uint32_t x) {
-            unsigned long bits;
-            _BitScanForward(&bits, x);
-            return (int) bits;
-        }
-        static CYTHON_INLINE int __Quicktions_trailing_zeros_ulong(uint32_t x) {
             unsigned long bits;
             _BitScanForward(&bits, x);
             return (int) bits;
@@ -139,6 +129,11 @@ cdef extern from *:
             _BitScanForward64(&bits, x);
             return (int) bits;
         }
+        #if SIZEOF_LONG == 4
+            #define __Quicktions_trailing_zeros_ulong(x)  __Quicktions_trailing_zeros_uint(x)
+        #else
+            #define __Quicktions_trailing_zeros_ulong(x)  __Quicktions_trailing_zeros_ullong(x)
+        #endif
     #endif
     #if !defined(__Quicktions_HAS_FAST_CTZ)
         #define __Quicktions_HAS_FAST_CTZ  0
