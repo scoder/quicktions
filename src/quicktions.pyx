@@ -104,12 +104,17 @@ cdef extern from *:
     #endif
 
     #ifdef __GCC__
-        #define __Quicktions_IS_GCC  1
+        #define __Quicktions_HAS_FAST_CTZ  1
         #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
         #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
+    #elif defined(__clang__) && __has_builtin(__builtin_ctzg)
+        #define __Quicktions_HAS_FAST_CTZ  1
+        #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctzg(x)
+        #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzg(x)
+        #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzg(x)
     #else
-        #define __Quicktions_IS_GCC  0
+        #define __Quicktions_HAS_FAST_CTZ  0
         #define __Quicktions_trailing_zeros_uint(x)    (0)
         #define __Quicktions_trailing_zeros_ulong(x)   (0)
         #define __Quicktions_trailing_zeros_ullong(x)  (0)
@@ -124,7 +129,7 @@ cdef extern from *:
     int HAS_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
     _PyLong_GCD(a, b)
 
-    bint IS_GCC "__Quicktions_IS_GCC"
+    bint HAS_FAST_CTZ "__Quicktions_HAS_FAST_CTZ"
     int trailing_zeros_uint "__Quicktions_trailing_zeros_uint" (unsigned int x)
     int trailing_zeros_ulong "__Quicktions_trailing_zeros_ulong" (unsigned long x)
     int trailing_zeros_ullong "__Quicktions_trailing_zeros_ullong" (unsigned long long x)
@@ -160,7 +165,7 @@ cdef ullong _abs(long long x):
 
 cdef cunumber _igcd(cunumber a, cunumber b):
     """Euclid's GCD algorithm"""
-    if IS_GCC:
+    if HAS_FAST_CTZ:
         return _binary_gcd(a, b)
     else:
         return _euclid_gcd(a, b)
