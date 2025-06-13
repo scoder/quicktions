@@ -55,7 +55,8 @@ except AttributeError:
 
 
 # Cache widely used 10**x int objects.
-DEF CACHED_POW10 = 64  # sys.getsizeof(tuple[58]) == 512 bytes  in Py3.7
+# Py3.12/Ubuntu64: sys.getsizeof(tuple[58]) == 512 bytes, tuple[91] == 768, tuple[123] == 1024
+DEF CACHED_POW10 = 91
 
 cdef tuple _cache_pow10():
     cdef int i
