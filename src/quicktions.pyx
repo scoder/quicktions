@@ -103,7 +103,7 @@ cdef extern from *:
         #define _PyLong_GCD(a, b) (NULL)
     #endif
 
-    #ifdef __GCC__
+    #if defined(__GCC__) && __has_builtin(__builtin_ctz) && __has_builtin(__builtin_ctzl) && __has_builtin(__builtin_ctzll)
         #define __Quicktions_HAS_FAST_CTZ  1
         #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
