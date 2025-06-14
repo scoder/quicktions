@@ -99,7 +99,7 @@ cdef extern from *:
         #define __Quicktions_PyLong_IsCompact(x)     (0)
         #define __Quicktions_PyLong_CompactValueUnsigned(x)  (0U)
     #endif
-    #if PY_VERSION_HEX < 0x030500F0 || PY_VERSION_HEX >= 0x030d0000 || !CYTHON_COMPILING_IN_CPYTHON
+    #if PY_VERSION_HEX >= 0x030d0000 || !CYTHON_COMPILING_IN_CPYTHON
         #define _PyLong_GCD(a, b) (NULL)
     #endif
 
@@ -147,9 +147,9 @@ cdef extern from *:
 
     # CPython 3.5-3.12 has a fast PyLong GCD implementation that we can use.
     # In CPython 3.13, math.gcd() is fast enough to call it directly.
-    int PY_VERSION_HEX
-    int HAS_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
-    _PyLong_GCD(a, b)
+    bint HAS_FAST_MATH_GCD  "(PY_VERSION_HEX >= 0x030d0000)"
+    bint HAS_OLD_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
+    object _PyLong_GCD(object a, object b)
 
     bint HAS_FAST_CTZ "__Quicktions_HAS_FAST_CTZ"
     int trailing_zeros_uint "__Quicktions_trailing_zeros_uint" (unsigned int x)
@@ -162,11 +162,11 @@ cpdef _gcd(a, b):
     """
     if PyLong_IsCompact(a) and PyLong_IsCompact(b):
         return _c_gcd(PyLong_CompactValueUnsigned(a), PyLong_CompactValueUnsigned(b))
-    if PY_VERSION_HEX >= 0x030d0000:
+    if HAS_FAST_MATH_GCD:
         return math_gcd(a, b)
-    if not HAS_PYLONG_GCD:
-        return _gcd_fallback(a, b)
-    return _PyLong_GCD(a, b)
+    if HAS_OLD_PYLONG_GCD:
+        return _PyLong_GCD(a, b)
+    return _gcd_fallback(a, b)
 
 
 ctypedef unsigned long long ullong
@@ -705,29 +705,11 @@ cdef class Fraction:
         cdef Py_ssize_t minimumwidth = int(match["minimumwidth"] or "0")
         thousands_sep = match["thousands_sep"] or ''
 
-        if PY_VERSION_HEX < 0x03060000:
-            legacy_thousands_sep, thousands_sep = thousands_sep, ''
         cdef Py_ssize_t first_pos  # Py2/3.5-only
 
         # Determine the body and sign representation.
         n, d = self._numerator, self._denominator
-        if PY_VERSION_HEX < 0x03060000 and legacy_thousands_sep:
-            # Insert thousands separators if required.
-            body = str(abs(n))
-            first_pos = 1 + (len(body) - 1) % 3
-            body = body[:first_pos] + "".join([
-                legacy_thousands_sep + body[pos : pos + 3]
-                for pos in range(first_pos, len(body), 3)
-            ])
-            if d > 1 or alternate_form:
-                den = str(abs(d))
-                first_pos = 1 + (len(den) - 1) % 3
-                den = den[:first_pos] + "".join([
-                    legacy_thousands_sep + den[pos: pos + 3]
-                    for pos in range(first_pos, len(den), 3)
-                ])
-                body += "/" + den
-        elif d > 1 or alternate_form:
+        if d > 1 or alternate_form:
             body = f"{abs(n):{thousands_sep}}/{d:{thousands_sep}}"
         else:
             body = f"{abs(n):{thousands_sep}}"
@@ -1083,39 +1065,28 @@ cdef class Fraction:
         # outlined in the documentation.  (See library docs, 'Built-in
         # Types').
 
-        if PY_VERSION_HEX < 0x030800B1:
-            # dinv is the inverse of self._denominator modulo the prime
-            # _PyHASH_MODULUS, or 0 if self._denominator is divisible by
-            # _PyHASH_MODULUS.
-            dinv = pow(self._denominator, _PyHASH_MODULUS - 2, _PyHASH_MODULUS)
-            if not dinv:
-                result = _PyHASH_INF
-            else:
-                result = abs(self._numerator) * dinv % _PyHASH_MODULUS
+        try:
+            dinv = pow(self._denominator, -1, _PyHASH_MODULUS)
+        except ValueError:
+            # ValueError means there is no modular inverse.
+            result = _PyHASH_INF
         else:
-            # Py3.8+
-            try:
-                dinv = pow(self._denominator, -1, _PyHASH_MODULUS)
-            except ValueError:
-                # ValueError means there is no modular inverse.
-                result = _PyHASH_INF
-            else:
-                # The general algorithm now specifies that the absolute value of
-                # the hash is
-                #    (|N| * dinv) % P
-                # where N is self._numerator and P is _PyHASH_MODULUS.  That's
-                # optimized here in two ways:  first, for a non-negative int i,
-                # hash(i) == i % P, but the int hash implementation doesn't need
-                # to divide, and is faster than doing % P explicitly.  So we do
-                #    hash(|N| * dinv)
-                # instead.  Second, N is unbounded, so its product with dinv may
-                # be arbitrarily expensive to compute.  The final answer is the
-                # same if we use the bounded |N| % P instead, which can again
-                # be done with an int hash() call.  If 0 <= i < P, hash(i) == i,
-                # so this nested hash() call wastes a bit of time making a
-                # redundant copy when |N| < P, but can save an arbitrarily large
-                # amount of computation for large |N|.
-                result = hash(hash(abs(self._numerator)) * dinv)
+            # The general algorithm now specifies that the absolute value of
+            # the hash is
+            #    (|N| * dinv) % P
+            # where N is self._numerator and P is _PyHASH_MODULUS.  That's
+            # optimized here in two ways:  first, for a non-negative int i,
+            # hash(i) == i % P, but the int hash implementation doesn't need
+            # to divide, and is faster than doing % P explicitly.  So we do
+            #    hash(|N| * dinv)
+            # instead.  Second, N is unbounded, so its product with dinv may
+            # be arbitrarily expensive to compute.  The final answer is the
+            # same if we use the bounded |N| % P instead, which can again
+            # be done with an int hash() call.  If 0 <= i < P, hash(i) == i,
+            # so this nested hash() call wastes a bit of time making a
+            # redundant copy when |N| < P, but can save an arbitrarily large
+            # amount of computation for large |N|.
+            result = hash(hash(abs(self._numerator)) * dinv)
 
         if self._numerator < 0:
             result = -result
