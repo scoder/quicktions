@@ -104,41 +104,67 @@ cdef extern from *:
     #endif
 
     #ifdef __has_builtin
-      #if __has_builtin(__builtin_ctz) && __has_builtin(__builtin_ctzl) && __has_builtin(__builtin_ctzll)
-        #define __Quicktions_HAS_FAST_CTZ  1
-        #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
-        #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
-        #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
-      #elif __has_builtin(__builtin_ctzg)
-        #define __Quicktions_HAS_FAST_CTZ  1
+      #if __has_builtin(__builtin_ctzg)
+        #define __Quicktions_HAS_FAST_CTZ_uint  1
         #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctzg(x)
+        #define __Quicktions_HAS_FAST_CTZ_ulong  1
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzg(x)
+        #define __Quicktions_HAS_FAST_CTZ_ullong  1
         #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzg(x)
+      #else
+        #if __has_builtin(__builtin_ctz)
+            #define __Quicktions_HAS_FAST_CTZ_uint  1
+            #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
+        #endif
+        #if __has_builtin(__builtin_ctzl)
+            #define __Quicktions_HAS_FAST_CTZ_ulong  1
+            #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
+        #endif
+        #if __has_builtin(__builtin_ctzll)
+            #define __Quicktions_HAS_FAST_CTZ_ullong  1
+            #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
+        #endif
       #endif
-    #elif defined(_MSC_VER) && defined(_WIN64) && SIZEOF_INT == 4 && SIZEOF_LONG_LONG == 8
+    #elif defined(_MSC_VER) && SIZEOF_INT == 4
         /* Typical Windows64 config (Win32 does not define "_BitScanForward64"). */
-        #define __Quicktions_HAS_FAST_CTZ  1
-        #pragma intrinsic(_BitScanForward, _BitScanForward64)
+        #define __Quicktions_HAS_FAST_CTZ_uint  1
+        #pragma intrinsic(_BitScanForward)
         static CYTHON_INLINE int __Quicktions_trailing_zeros_uint(uint32_t x) {
             unsigned long bits;
             _BitScanForward(&bits, x);
             return (int) bits;
         }
-        static CYTHON_INLINE int __Quicktions_trailing_zeros_ullong(uint64_t x) {
-            unsigned long bits;
-            _BitScanForward64(&bits, x);
-            return (int) bits;
-        }
         #if SIZEOF_LONG == 4
-            #define __Quicktions_trailing_zeros_ulong(x)  __Quicktions_trailing_zeros_uint(x)
-        #else
+          #define __Quicktions_HAS_FAST_CTZ_ulong  1
+          #define __Quicktions_trailing_zeros_ulong(x)  __Quicktions_trailing_zeros_uint(x)
+        #endif
+
+        /* Win32 does not define "_BitScanForward64". */
+        #if defined(_WIN64) && SIZEOF_LONG_LONG == 8
+          #define __Quicktions_HAS_FAST_CTZ_ullong  1
+          #pragma intrinsic(_BitScanForward64)
+          static CYTHON_INLINE int __Quicktions_trailing_zeros_ullong(uint64_t x) {
+              unsigned long bits;
+              _BitScanForward64(&bits, x);
+              return (int) bits;
+          }
+          #if SIZEOF_LONG == 8
+            #define __Quicktions_HAS_FAST_CTZ_ulong  1
             #define __Quicktions_trailing_zeros_ulong(x)  __Quicktions_trailing_zeros_ullong(x)
+          #endif
         #endif
     #endif
-    #if !defined(__Quicktions_HAS_FAST_CTZ)
-        #define __Quicktions_HAS_FAST_CTZ  0
+
+    #if !defined(__Quicktions_HAS_FAST_CTZ_uint)
+        #define __Quicktions_HAS_FAST_CTZ_uint  0
         #define __Quicktions_trailing_zeros_uint(x)    (0)
+    #endif
+    #if !defined(__Quicktions_HAS_FAST_CTZ_ulong)
+        #define __Quicktions_HAS_FAST_CTZ_ulong  0
         #define __Quicktions_trailing_zeros_ulong(x)   (0)
+    #endif
+    #if !defined(__Quicktions_HAS_FAST_CTZ_ullong)
+        #define __Quicktions_HAS_FAST_CTZ_ullong  0
         #define __Quicktions_trailing_zeros_ullong(x)  (0)
     #endif
     """
@@ -151,9 +177,11 @@ cdef extern from *:
     bint HAS_OLD_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
     object _PyLong_GCD(object a, object b)
 
-    bint HAS_FAST_CTZ "__Quicktions_HAS_FAST_CTZ"
+    bint HAS_FAST_CTZ_uint   "__Quicktions_HAS_FAST_CTZ_uint"
     int trailing_zeros_uint "__Quicktions_trailing_zeros_uint" (unsigned int x)
+    bint HAS_FAST_CTZ_ulong  "__Quicktions_HAS_FAST_CTZ_ulong"
     int trailing_zeros_ulong "__Quicktions_trailing_zeros_ulong" (unsigned long x)
+    bint HAS_FAST_CTZ_ullong "__Quicktions_HAS_FAST_CTZ_ullong"
     int trailing_zeros_ullong "__Quicktions_trailing_zeros_ullong" (unsigned long long x)
 
 
@@ -186,9 +214,12 @@ cdef ullong _abs(long long x):
 
 
 cdef cunumber _igcd(cunumber a, cunumber b):
-    """Euclid's GCD algorithm"""
-    if HAS_FAST_CTZ:
-        return _binary_gcd(a, b)
+    if cunumber is ullong and HAS_FAST_CTZ_ullong:
+        return _binary_gcd[ullong](a, b)
+    elif cunumber is ulong and HAS_FAST_CTZ_ulong:
+        return _binary_gcd[ulong](a, b)
+    elif cunumber is uint and HAS_FAST_CTZ_uint:
+        return _binary_gcd[uint](a, b)
     else:
         return _euclid_gcd(a, b)
 
