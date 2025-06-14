@@ -240,6 +240,7 @@ cdef inline int trailing_zeros(cunumber x):
         return trailing_zeros_ullong(x)
 
 
+"""
 cdef cunumber _binary_gcd(cunumber a, cunumber b):
     # See https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     if not a:
@@ -247,20 +248,45 @@ cdef cunumber _binary_gcd(cunumber a, cunumber b):
     if not b:
         return a
 
-    cdef int i = trailing_zeros(a)
-    a >>= i
-    cdef int j = trailing_zeros(b)
-    b >>= j
+    cdef int az = trailing_zeros(a)
+    a >>= az
+    cdef int bz = trailing_zeros(b)
+    b >>= bz
 
-    cdef int k = min(i, j)
+    cdef int shift = min(az, bz)
 
     while True:
         if a > b:
             a, b = b, a
         b -= a
         if not b:
-            return a << k
+            return a << shift
         b >>= trailing_zeros(b)
+"""
+
+
+cdef cunumber _binary_gcd(cunumber a, cunumber b):
+    # See https://en.algorithmica.org/hpc/algorithms/gcd/
+    if not a:
+        return b
+    if not b:
+        return a
+
+    cdef int az = trailing_zeros(a)
+    cdef int bz = trailing_zeros(b)
+    cdef int shift = min(az, bz)
+    b >>= bz
+
+    cdef cunumber diff
+
+    while a != 0:
+        a >>= az
+        diff = b - a if b > a else a - b
+        az = trailing_zeros(diff)
+        b = min(a, b)
+        a = diff
+
+    return b << shift
 
 
 cdef _py_gcd(ullong a, ullong b):
