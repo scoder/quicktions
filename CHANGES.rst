@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+1.22 (2025-??-??)
+-----------------
+
+* A choice of different GCD implementations is available via ``quicktions.use_gcd_impl()``.
+  The fastest one on the current machine is chosen at import time.
+
+
 1.21 (2025-06-13)
 -----------------
 

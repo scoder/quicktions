@@ -1990,6 +1990,19 @@ class QuicktionsTest(unittest.TestCase):
             pyf = fractions.Fraction(value)
             self.assertEqual(f, pyf, value)
 
+    def test_gcd_impl(self):
+        print(quicktions.GCD_IMPL, end=' ')
+        self.assertIn(quicktions.GCD_IMPL, ['euclid', 'binary', 'hybrid'])
+
+    def test_use_gcd_impl(self):
+        orig_impl = quicktions.GCD_IMPL
+        try:
+            for impl in ['euclid', 'binary', 'hybrid']:
+                quicktions.use_gcd_impl(impl)
+                self.assertEqual(quicktions.GCD_IMPL, impl)
+                self.assertEqual(quicktions._gcd(209865, 209797), 17)
+        finally:
+            quicktions.use_gcd_impl(orig_impl)
 
 
 def _gen_fuzzer_values():

@@ -36,7 +36,7 @@ cdef extern from *:
     cdef long long MAX_SMALL_NUMBER "(PY_LLONG_MAX / 100)"
 
 cdef object Rational, Integral, Real, Complex, Decimal, math, operator, re
-cdef object PY_MAX_LONG_LONG = PY_LLONG_MAX
+cdef object PY_MAX_ULONGLONG = (<unsigned long long> PY_LLONG_MAX) * 2 + 1
 
 from numbers import Rational, Integral, Real, Complex
 from decimal import Decimal
@@ -85,6 +85,14 @@ cdef pow10(long long i):
 
 cdef extern from *:
     """
+    #if defined(__Pyx_PyLong_DigitCount)
+      #define __Quicktions_HAS_ISLONGLONG  (1)
+      #define __Quicktions_PyLong_IsLongLong(x)  (__Pyx_PyLong_DigitCount(x) <= 2)
+    #else
+      #define __Quicktions_HAS_ISLONGLONG  (0)
+      #define __Quicktions_PyLong_IsLongLong(x)  (0)
+    #endif
+
     #if PY_VERSION_HEX >= 0x030c00a5 && defined(PyUnstable_Long_IsCompact) && defined(PyUnstable_Long_CompactValue)
         #define __Quicktions_PyLong_IsCompact(x)  PyUnstable_Long_IsCompact((PyLongObject*) (x))
       #if CYTHON_COMPILING_IN_CPYTHON
@@ -105,29 +113,29 @@ cdef extern from *:
 
     #ifdef __has_builtin
       #if __has_builtin(__builtin_ctzg)
-        #define __Quicktions_HAS_FAST_CTZ_uint  1
+        #define __Quicktions_HAS_FAST_CTZ_uint  (1)
         #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctzg(x)
-        #define __Quicktions_HAS_FAST_CTZ_ulong  1
+        #define __Quicktions_HAS_FAST_CTZ_ulong  (1)
         #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzg(x)
-        #define __Quicktions_HAS_FAST_CTZ_ullong  1
+        #define __Quicktions_HAS_FAST_CTZ_ullong  (1)
         #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzg(x)
       #else
         #if __has_builtin(__builtin_ctz)
-            #define __Quicktions_HAS_FAST_CTZ_uint  1
+            #define __Quicktions_HAS_FAST_CTZ_uint  (1)
             #define __Quicktions_trailing_zeros_uint(x)    __builtin_ctz(x)
         #endif
         #if __has_builtin(__builtin_ctzl)
-            #define __Quicktions_HAS_FAST_CTZ_ulong  1
+            #define __Quicktions_HAS_FAST_CTZ_ulong  (1)
             #define __Quicktions_trailing_zeros_ulong(x)   __builtin_ctzl(x)
         #endif
         #if __has_builtin(__builtin_ctzll)
-            #define __Quicktions_HAS_FAST_CTZ_ullong  1
+            #define __Quicktions_HAS_FAST_CTZ_ullong  (1)
             #define __Quicktions_trailing_zeros_ullong(x)  __builtin_ctzll(x)
         #endif
       #endif
     #elif defined(_MSC_VER) && SIZEOF_INT == 4
         /* Typical Windows64 config (Win32 does not define "_BitScanForward64"). */
-        #define __Quicktions_HAS_FAST_CTZ_uint  1
+        #define __Quicktions_HAS_FAST_CTZ_uint  (1)
         #pragma intrinsic(_BitScanForward)
         static CYTHON_INLINE int __Quicktions_trailing_zeros_uint(uint32_t x) {
             unsigned long bits;
@@ -135,13 +143,13 @@ cdef extern from *:
             return (int) bits;
         }
         #if SIZEOF_LONG == 4
-          #define __Quicktions_HAS_FAST_CTZ_ulong  1
+          #define __Quicktions_HAS_FAST_CTZ_ulong  (1)
           #define __Quicktions_trailing_zeros_ulong(x)  __Quicktions_trailing_zeros_uint(x)
         #endif
 
         /* Win32 does not define "_BitScanForward64". */
         #if defined(_WIN64) && SIZEOF_LONG_LONG == 8
-          #define __Quicktions_HAS_FAST_CTZ_ullong  1
+          #define __Quicktions_HAS_FAST_CTZ_ullong  (1)
           #pragma intrinsic(_BitScanForward64)
           static CYTHON_INLINE int __Quicktions_trailing_zeros_ullong(uint64_t x) {
               unsigned long bits;
@@ -149,51 +157,60 @@ cdef extern from *:
               return (int) bits;
           }
           #if SIZEOF_LONG == 8
-            #define __Quicktions_HAS_FAST_CTZ_ulong  1
+            #define __Quicktions_HAS_FAST_CTZ_ulong  (1)
             #define __Quicktions_trailing_zeros_ulong(x)  __Quicktions_trailing_zeros_ullong(x)
           #endif
         #endif
     #endif
 
     #if !defined(__Quicktions_HAS_FAST_CTZ_uint)
-        #define __Quicktions_HAS_FAST_CTZ_uint  0
+        #define __Quicktions_HAS_FAST_CTZ_uint  (0)
         #define __Quicktions_trailing_zeros_uint(x)    (0)
     #endif
     #if !defined(__Quicktions_HAS_FAST_CTZ_ulong)
-        #define __Quicktions_HAS_FAST_CTZ_ulong  0
+        #define __Quicktions_HAS_FAST_CTZ_ulong  (0)
         #define __Quicktions_trailing_zeros_ulong(x)   (0)
     #endif
     #if !defined(__Quicktions_HAS_FAST_CTZ_ullong)
-        #define __Quicktions_HAS_FAST_CTZ_ullong  0
+        #define __Quicktions_HAS_FAST_CTZ_ullong  (0)
         #define __Quicktions_trailing_zeros_ullong(x)  (0)
     #endif
     """
     bint PyLong_IsCompact "__Quicktions_PyLong_IsCompact" (x)
-    Py_ssize_t PyLong_CompactValueUnsigned "__Quicktions_PyLong_CompactValueUnsigned" (x)
+    unsigned long long PyLong_CompactValueUnsigned "__Quicktions_PyLong_CompactValueUnsigned" (x)
+    const unsigned long long PY_ULLONG_MAX
+
+    bint PyLong_IsLongLong "__Quicktions_PyLong_IsLongLong" (x)
+    const bint HAS_ISLONGLONG "__Quicktions_HAS_ISLONGLONG"
 
     # CPython 3.5-3.12 has a fast PyLong GCD implementation that we can use.
     # In CPython 3.13, math.gcd() is fast enough to call it directly.
-    bint HAS_FAST_MATH_GCD  "(PY_VERSION_HEX >= 0x030d0000)"
-    bint HAS_OLD_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
+    const bint HAS_FAST_MATH_GCD  "(PY_VERSION_HEX >= 0x030d0000)"
+    const bint HAS_OLD_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
     object _PyLong_GCD(object a, object b)
 
-    bint HAS_FAST_CTZ_uint   "__Quicktions_HAS_FAST_CTZ_uint"
+    const bint HAS_FAST_CTZ_uint   "__Quicktions_HAS_FAST_CTZ_uint"
     int trailing_zeros_uint "__Quicktions_trailing_zeros_uint" (unsigned int x)
-    bint HAS_FAST_CTZ_ulong  "__Quicktions_HAS_FAST_CTZ_ulong"
+    const bint HAS_FAST_CTZ_ulong  "__Quicktions_HAS_FAST_CTZ_ulong"
     int trailing_zeros_ulong "__Quicktions_trailing_zeros_ulong" (unsigned long x)
-    bint HAS_FAST_CTZ_ullong "__Quicktions_HAS_FAST_CTZ_ullong"
+    const bint HAS_FAST_CTZ_ullong "__Quicktions_HAS_FAST_CTZ_ullong"
     int trailing_zeros_ullong "__Quicktions_trailing_zeros_ullong" (unsigned long long x)
 
 
-cpdef _gcd(a, b):
+cpdef _gcd(a: int, b: int):
     """Calculate the Greatest Common Divisor of a and b as a non-negative number.
     """
-    if PyLong_IsCompact(a) and PyLong_IsCompact(b):
+    if HAS_ISLONGLONG:
+        if PyLong_IsLongLong(a) and PyLong_IsLongLong(b):
+            return _c_gcd(<unsigned long long> a, <unsigned long long> b)
+    elif PyLong_IsCompact(a) and PyLong_IsCompact(b):
         return _c_gcd(PyLong_CompactValueUnsigned(a), PyLong_CompactValueUnsigned(b))
+
     if HAS_FAST_MATH_GCD:
         return math_gcd(a, b)
     if HAS_OLD_PYLONG_GCD:
         return _PyLong_GCD(a, b)
+
     return _gcd_fallback(a, b)
 
 
@@ -207,31 +224,21 @@ ctypedef fused cunumber:
     uint
 
 
-cdef ullong _abs(long long x):
+cdef ullong _abs(long long x) noexcept:
     if x == PY_LLONG_MIN:
         return (<ullong>PY_LLONG_MAX) + 1
     return abs(x)
 
 
-cdef cunumber _igcd(cunumber a, cunumber b):
-    if cunumber is ullong and HAS_FAST_CTZ_ullong:
-        return _binary_gcd[ullong](a, b)
-    elif cunumber is ulong and HAS_FAST_CTZ_ulong:
-        return _binary_gcd[ulong](a, b)
-    elif cunumber is uint and HAS_FAST_CTZ_uint:
-        return _binary_gcd[uint](a, b)
-    else:
-        return _euclid_gcd(a, b)
-
-
-cdef cunumber _euclid_gcd(cunumber a, cunumber b):
+@cython.cdivision(True)
+cdef cunumber _euclid_gcd(cunumber a, cunumber b) noexcept:
     """Euclid's GCD algorithm"""
     while b:
         a, b = b, a%b
     return a
 
 
-cdef inline int trailing_zeros(cunumber x):
+cdef inline int trailing_zeros(cunumber x) noexcept:
     if cunumber is uint:
         return trailing_zeros_uint(x)
     elif cunumber is ulong:
@@ -240,8 +247,7 @@ cdef inline int trailing_zeros(cunumber x):
         return trailing_zeros_ullong(x)
 
 
-"""
-cdef cunumber _binary_gcd(cunumber a, cunumber b):
+cdef cunumber _binary_gcd(cunumber a, cunumber b) noexcept:
     # See https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     if not a:
         return b
@@ -262,15 +268,54 @@ cdef cunumber _binary_gcd(cunumber a, cunumber b):
         if not b:
             return a << shift
         b >>= trailing_zeros(b)
-"""
 
 
-cdef cunumber _binary_gcd(cunumber a, cunumber b):
-    # See https://en.algorithmica.org/hpc/algorithms/gcd/
-    if not a:
-        return b
+@cython.cdivision(True)
+cdef cunumber _hybrid_binary_gcd(cunumber a, cunumber b) noexcept:
+    # See https://lemire.me/blog/2024/04/13/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
+    if a < b:
+        a,b = b,a
     if not b:
         return a
+    a %= b
+    if not a:
+        return b
+
+    cdef int az = trailing_zeros(a)
+    cdef int bz = trailing_zeros(b)
+    cdef int shift = min(az, bz)
+    a >>= az
+    b >>= bz
+
+    if cunumber is uint:
+        diff: cython.int
+    elif cunumber is ulong:
+        diff: cython.long
+    else:
+        diff: cython.longlong
+
+    while True:
+        diff = a - b
+        if a > b:
+            a,b = b,diff
+        else:
+            b -= a
+        if not b:
+            return a << shift
+        b >>= trailing_zeros(diff)
+
+
+@cython.cdivision(True)
+cdef cunumber _hybrid_binary_gcd2(cunumber a, cunumber b) noexcept:
+    # See https://en.algorithmica.org/hpc/algorithms/gcd/
+    # See https://lemire.me/blog/2024/04/13/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
+    if a < b:
+        a,b = b,a
+    if not b:
+        return a
+    a %= b
+    if not a:
+        return b
 
     cdef int az = trailing_zeros(a)
     cdef int bz = trailing_zeros(b)
@@ -282,33 +327,165 @@ cdef cunumber _binary_gcd(cunumber a, cunumber b):
     while a != 0:
         a >>= az
         diff = b - a if b > a else a - b
+        if b > a:
+            b = a
         az = trailing_zeros(diff)
-        b = min(a, b)
         a = diff
 
     return b << shift
 
 
 cdef _py_gcd(ullong a, ullong b):
-    if a <= <ullong>INT_MAX and b <= <ullong>INT_MAX:
-        return <int> _igcd[uint](<uint> a, <uint> b)
-    elif a <= <ullong>LONG_MAX and b <= <ullong>LONG_MAX:
-        return <long> _igcd[ulong](<ulong> a, <ulong> b)
-    elif b:
-        a = _igcd[ullong](a, b)
-    return a
+    return _c_gcd(a, b) if b else a
 
 
-cdef ullong _c_gcd(ullong a, ullong b):
-    if a <= <ullong>INT_MAX and b <= <ullong>INT_MAX:
-        return _igcd[uint](<uint> a, <uint> b)
-    elif a <= <ullong>LONG_MAX and b <= <ullong>LONG_MAX:
-        return _igcd[ulong](<ulong> a, <ulong> b)
+cdef ullong _c_gcd_euclid(ullong a, ullong b):
+    if not b:
+        return a
+    if a <= <ullong>INT_MAX*2+1 and b <= <ullong>INT_MAX*2+1:
+        return _euclid_gcd[uint](<uint> a, <uint> b)
+    elif a <= <ullong>LONG_MAX*2+1 and b <= <ullong>LONG_MAX*2+1:
+        return _euclid_gcd[ulong](<ulong> a, <ulong> b)
     else:
-        return _igcd[ullong](a, b)
+        return _euclid_gcd[ullong](a, b)
 
 
-cdef _gcd_fallback(a, b):
+cdef ullong _c_gcd_binary(ullong a, ullong b):
+    if not b:
+        return a
+    if HAS_FAST_CTZ_uint and a <= <ullong>INT_MAX*2+1 and b <= <ullong>INT_MAX*2+1:
+        return _binary_gcd[uint](<uint> a, <uint> b)
+    elif HAS_FAST_CTZ_ulong and a <= <ullong>LONG_MAX*2+1 and b <= <ullong>LONG_MAX*2+1:
+        return _binary_gcd[ulong](<ulong> a, <ulong> b)
+    elif HAS_FAST_CTZ_ullong:
+        return _binary_gcd[ullong](a, b)
+    else:
+        return _c_gcd_euclid(a, b)
+
+
+cdef ullong _c_gcd_hybrid2(ullong a, ullong b):
+    if not b:
+        return a
+    if HAS_FAST_CTZ_uint and a <= <ullong>INT_MAX*2+1 and b <= <ullong>INT_MAX*2+1:
+        return _hybrid_binary_gcd2[uint](<uint> a, <uint> b)
+    elif HAS_FAST_CTZ_ulong and a <= <ullong>LONG_MAX*2+1 and b <= <ullong>LONG_MAX*2+1:
+        return _hybrid_binary_gcd2[ulong](<ulong> a, <ulong> b)
+    elif HAS_FAST_CTZ_ullong:
+        return _hybrid_binary_gcd2[ullong](a, b)
+    else:
+        return _c_gcd_euclid(a, b)
+
+
+cdef ullong _c_gcd_hybrid(ullong a, ullong b):
+    if not b:
+        return a
+    if HAS_FAST_CTZ_uint and a <= <ullong>INT_MAX and b <= <ullong>INT_MAX:
+        return _hybrid_binary_gcd[uint](<uint> a, <uint> b)
+    elif HAS_FAST_CTZ_ulong and a <= <ullong>LONG_MAX and b <= <ullong>LONG_MAX:
+        return _hybrid_binary_gcd[ulong](<ulong> a, <ulong> b)
+    elif HAS_FAST_CTZ_ullong:
+        return _hybrid_binary_gcd[ullong](a, b)
+    else:
+        return _c_gcd_euclid(a, b)
+
+
+ctypedef ullong (*fast_cgcd)(ullong a, ullong b)
+
+cdef fast_cgcd _c_gcd = NULL
+cdef fast_cgcd _c_gcd_best_hybrid = NULL
+
+
+def use_gcd_impl(name):
+    """Change the internal GCD implementation.
+
+    'name' is one of: 'euclid', 'binary', 'hybrid'
+    """
+    if name not in ('euclid', 'binary', 'hybrid'):
+        raise ValueError(f"{name!r} is not one of: 'euclid', 'binary', 'hybrid'")
+
+    global _c_gcd, GCD_IMPL
+
+    if name == 'euclid':
+        _c_gcd = _c_gcd_euclid
+    elif name == 'binary':
+        _c_gcd = _c_gcd_binary
+    else:
+        _c_gcd = _c_gcd_best_hybrid
+    GCD_IMPL = name
+
+
+cdef double _measure_gcd_performance(fast_cgcd func):
+    from time import perf_counter as timer
+    cdef int i, j, e
+
+    t = timer()
+
+    # Fibonacci numbers:
+    cdef unsigned long long a = 1, b = 1, c = 2
+
+    for i in range(1, 91):
+        a, b, c = b, a+b, b+c
+        if a & 3 == 0:
+            func(a, b)
+            func(a, c)
+
+    # Close numbers:
+    for i in range(1, 20):
+        func(209865, 209797)
+
+    # 'Parsed' digits with 10^n denominator:
+    cdef unsigned long long num = 3
+    cdef unsigned long long denom = 1
+    cdef unsigned long long n
+
+    for i in range(1, 18):
+        num = 10 * num + (i & 7)
+        denom *= 10
+        n = num
+        for e in range(3):
+            n *= 10
+            for j in range(8):
+                func(n + j, denom)
+
+    t = timer() - t
+
+    return t
+
+
+cdef int _tune_cgcd():
+    # Find fastest GCD implementation for this machine.
+    t_binary = _measure_gcd_performance(_c_gcd_binary)
+    t_euclid = _measure_gcd_performance(_c_gcd_euclid)
+    t_hybrid = _measure_gcd_performance(_c_gcd_hybrid)
+    t_hybrid2 = _measure_gcd_performance(_c_gcd_hybrid2)
+
+    name = 'euclid'
+    best_time = t_euclid
+
+    if t_binary < best_time:
+        name = 'binary'
+        best_time = t_binary
+
+    if t_hybrid < best_time:
+        name = 'hybrid'
+        best_time = t_hybrid
+
+    if t_hybrid2 < best_time:
+        name = 'hybrid'
+        best_time = t_hybrid2
+
+    global _c_gcd_best_hybrid
+    _c_gcd_best_hybrid = _c_gcd_hybrid if t_hybrid < t_hybrid2 else _c_gcd_hybrid2
+
+    #print(f"E: {t_euclid * 1_000_000:.2f}, B: {t_binary * 1_000_000:.2f}, H1: {t_hybrid * 1_000_000:.2f}, H2: {t_hybrid2 * 1_000_000:.2f}")
+    use_gcd_impl(name)
+
+    return 0
+
+_tune_cgcd()
+
+
+cdef _gcd_fallback(a: int, b: int):
     """Fallback GCD implementation if _PyLong_GCD() is not available.
     """
     # Try doing the computation in C space.  If the numbers are too
@@ -316,22 +493,29 @@ cdef _gcd_fallback(a, b):
     cdef ullong au, bu
     cdef long long ai, bi
 
-    # Optimistically try to switch to C space.
-    try:
-        ai, bi = a, b
-    except OverflowError:
-        pass
+    if HAS_ISLONGLONG:
+        if PyLong_IsLongLong(a) and PyLong_IsLongLong(b):
+            ai, bi = a, b
+            au = _abs(ai)
+            bu = _abs(bi)
+            return _py_gcd(au, bu)
     else:
-        au = _abs(ai)
-        bu = _abs(bi)
-        return _py_gcd(au, bu)
+        # Optimistically try to switch to C space.
+        try:
+            ai, bi = a, b
+        except OverflowError:
+            pass
+        else:
+            au = _abs(ai)
+            bu = _abs(bi)
+            return _py_gcd(au, bu)
 
     # Do object calculation until we reach the C space limit.
     a = abs(a)
     b = abs(b)
-    while b > PY_MAX_LONG_LONG:
+    while b > PY_MAX_ULONGLONG:
         a, b = b, a%b
-    while b and a > PY_MAX_LONG_LONG:
+    while b and a > PY_MAX_ULONGLONG:
         a, b = b, a%b
     if not b:
         return a
