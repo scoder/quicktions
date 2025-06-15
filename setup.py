@@ -86,6 +86,7 @@ setup(
     author_email="stefan_ml@behnel.de",
     url="https://github.com/scoder/quicktions",
     #bugtrack_url="https://github.com/scoder/quicktions/issues",
+    license="PSF-2.0",
 
     ext_modules=ext_modules,
     package_dir={'': 'src'},
@@ -99,6 +100,5 @@ setup(
         "Programming Language :: Cython",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Office/Business :: Financial",
-        "License :: OSI Approved :: Python Software Foundation License",
     ],
 )
