@@ -254,6 +254,7 @@ def all_types(values, for_cls):
             return (
                 repr(v),
                 v,
+                '"%d/%d"' % f,
                 int_args(f[0], f[1]),
                 int_args(f[0]*10, f[1]*100),
                 int_args(f[0]*99, f[1]*f[0] - 1),
