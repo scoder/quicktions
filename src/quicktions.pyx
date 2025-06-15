@@ -197,9 +197,18 @@ cdef extern from *:
     int trailing_zeros_ullong "__Quicktions_trailing_zeros_ullong" (unsigned long long x)
 
 
-cpdef _gcd(a: int, b: int):
+def _gcd(a, b):
     """Calculate the Greatest Common Divisor of a and b as a non-negative number.
     """
+    if not isinstance(a, int):
+        raise ValueError(f"Expected int, got {type(a).__name__}")
+    if not isinstance(b, int):
+        raise ValueError(f"Expected int, got {type(b).__name__}")
+
+    return _igcd(int(a), int(b))
+
+
+cdef _igcd(a, b):
     if HAS_ISLONGLONG:
         if PyLong_IsLongLong(a) and PyLong_IsLongLong(b):
             return _c_gcd(<unsigned long long> a, <unsigned long long> b)
@@ -211,7 +220,7 @@ cpdef _gcd(a: int, b: int):
     if HAS_OLD_PYLONG_GCD:
         return _PyLong_GCD(a, b)
 
-    return _gcd_fallback(a, b)
+    return _gcd_fallback(int(a), int(b))
 
 
 ctypedef unsigned long long ullong
@@ -760,7 +769,7 @@ cdef class Fraction:
                 numerator = int(numerator)
             if not isinstance(denominator, int):
                 denominator = int(denominator)
-            g = _gcd(numerator, denominator)
+            g = _igcd(numerator, denominator)
             # NOTE: 'is' tests on integers are generally a bad idea, but
             # they are fast and if they fail here, it'll still be correct
             if denominator < 0:
