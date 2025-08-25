@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.22 (2025-??-??)
+1.22 (2025-08-25)
 -----------------
 
 * A choice of different GCD implementations is available via ``quicktions.use_gcd_impl()``.
