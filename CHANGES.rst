@@ -7,6 +7,8 @@ ChangeLog
 * A choice of different GCD implementations is available via ``quicktions.use_gcd_impl()``.
   The fastest one on the current machine is chosen at import time.
 
+* Built using Cython 3.1.3.
+
 
 1.21 (2025-06-13)
 -----------------

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["Cython>=3.1.2", "setuptools", "wheel"]
+requires = ["Cython>=3.1.3", "setuptools", "wheel"]
 
 [tool.cibuildwheel]
 build-verbosity = 2
@@ -8,7 +8,7 @@ enable =["cpython-freethreading", "cpython-prerelease"]
 # test-command = "python -m unittest {package}/test_fractions.py -p -v"
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64", "aarch64", "i686", "armv7l"]
+archs = ["x86_64", "aarch64", "i686", "ppc64le", "armv7l", "riscv64"]
 repair-wheel-command = "auditwheel repair --strip -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.linux.environment]
@@ -20,12 +20,12 @@ RANLIB = "gcc-ranlib"
 [[tool.cibuildwheel.overrides]]
 select = "*linux_i686"
 inherit.environment = "append"
-environment.CFLAGS = "-O3 -g1 -pipe -fPIC -march=core2 -mtune=generic"
+environment.CFLAGS = "-O3 -g1 -pipe -fPIC -march=core2 -mtune=generic -mno-ssse3"
 
 [[tool.cibuildwheel.overrides]]
 select = "*linux_x86_64"
 inherit.environment = "append"
-environment.CFLAGS = "-O3 -g1 -pipe -fPIC -march=core2 -msse4.1 -msse4.2 -mtune=generic"
+environment.CFLAGS = "-O3 -g1 -pipe -fPIC -march=core2 -mtune=generic -mno-ssse3"
 
 [[tool.cibuildwheel.overrides]]
 select = "*aarch64"
