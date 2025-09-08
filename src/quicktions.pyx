@@ -650,7 +650,11 @@ cdef object _FLOAT_FORMAT_SPECIFICATION_MATCHER = re.compile(r"""
     (?P<zeropad>0(?=[0-9]))?
     (?P<minimumwidth>[0-9]+)?
     (?P<thousands_sep>[,_])?
-    (?:\.(?P<precision>[0-9]+))?
+    (?:\.
+        (?=[,_0-9])  # lookahead for digit or separator
+        (?P<precision>[0-9]+)?
+        (?P<frac_separators>[,_])?
+    )?
     (?P<presentation_type>[eEfFgG%])
     $
 """, re.DOTALL | re.VERBOSE).match
@@ -989,6 +993,7 @@ cdef class Fraction:
         cdef Py_ssize_t minimumwidth = int(match["minimumwidth"] or "0")
         thousands_sep = match["thousands_sep"]
         cdef Py_ssize_t precision = int(match["precision"] or "6")
+        cdef str frac_sep = match["frac_separators"] or ""
         cdef Py_UCS4 presentation_type = ord(match["presentation_type"])
         cdef bint trim_zeros = presentation_type in u"gG" and not alternate_form
         cdef bint trim_point = not alternate_form
@@ -1049,6 +1054,10 @@ cdef class Fraction:
         if trim_zeros:
             frac_part = frac_part.rstrip("0")
         separator = "" if trim_point and not frac_part else "."
+        if frac_sep:
+            frac_part = frac_sep.join([
+                frac_part[pos:pos + 3] for pos in range(0, len(frac_part), 3)
+            ])
         trailing = separator + frac_part + suffix
 
         # Do zero padding if required.
