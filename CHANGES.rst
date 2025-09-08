@@ -1,6 +1,16 @@
 ChangeLog
 =========
 
+1.23 (2025-??-??)
+-----------------
+
+* Thousands separator in formatting was handled differently than for floats etc.
+  https://github.com/python/cpython/pull/131067
+
+* Support thousands separators for formatting fractional part of Fraction.
+  https://github.com/python/cpython/pull/132204
+
+
 1.22 (2025-08-25)
 -----------------
 
