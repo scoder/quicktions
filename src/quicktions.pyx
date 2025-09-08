@@ -994,6 +994,9 @@ cdef class Fraction:
         cdef bint trim_point = not alternate_form
         exponent_indicator = "E" if presentation_type in u"EFG" else "e"
 
+        if align == '=' and fill == '0':
+            zeropad = True
+
         cdef bint negative, scientific
         cdef Py_ssize_t exponent, figures
 
