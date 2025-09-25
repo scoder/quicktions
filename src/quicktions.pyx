@@ -414,6 +414,7 @@ def use_gcd_impl(name):
 
     global _c_gcd, GCD_IMPL
 
+    name = str(name)
     if name == 'euclid':
         _c_gcd = _c_gcd_euclid
     elif name == 'binary':
