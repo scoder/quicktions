@@ -75,14 +75,14 @@ jobs:
       - uses: actions/checkout@v5
       - name: Install cibuildwheel
         # Nb. keep cibuildwheel version pin consistent with job below
-        run: pipx install cibuildwheel==3.1.4
+        run: pipx install cibuildwheel==3.3.0
       - id: set-matrix
         run: |
           MATRIX=$(
             {
               cibuildwheel --print-build-identifiers --platform linux \
               | jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
-              | sed -e '/aarch64/s|ubuntu-latest|ubuntu-24.04-arm|' \
+              | sed -e '/aarch64|armv7l/s|ubuntu-latest|ubuntu-24.04-arm|' \
               && cibuildwheel --print-build-identifiers --platform macos \
               | jq -nRc '{"only": inputs, "os": "macos-latest"}' \
               && cibuildwheel --print-build-identifiers --platform windows \
@@ -114,22 +114,23 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.1
+        uses: pypa/cibuildwheel@v3.3.0
         with:
           only: ${{ matrix.only }}
 
       - name: Build faster Linux wheels
         # also build wheels with the most recent manylinux images and gcc
         if: runner.os == 'Linux' && !contains(matrix.only, 'i686')
-        uses: pypa/cibuildwheel@v3.2.1
+        uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_34
-          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_34  # manylinux_2_39 ?
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_39
+          CIBW_MANYLINUX_ARMV7L_IMAGE: manylinux_2_35
           CIBW_MANYLINUX_PPC64LE_IMAGE: manylinux_2_34
           CIBW_MANYLINUX_S390X_IMAGE: manylinux_2_34
           CIBW_MANYLINUX_RISCV64_IMAGE: manylinux_2_39
           CIBW_MANYLINUX_PYPY_X86_64_IMAGE: manylinux_2_34
-          CIBW_MANYLINUX_PYPY_AARCH64_IMAGE: manylinux_2_34
+          CIBW_MANYLINUX_PYPY_AARCH64_IMAGE: manylinux_2_39
           CIBW_MUSLLINUX_X86_64_IMAGE: musllinux_1_2
           CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
           CIBW_MUSLLINUX_PPC64LE_IMAGE: musllinux_1_2

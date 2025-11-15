@@ -60,8 +60,10 @@ jobs:
         - "3.12"
         - "3.13"
         - "3.13t"
-        - "3.14-dev"
-        - "3.14t-dev"
+        - "3.14"
+        - "3.14t"
+        - "3.15-dev"
+        - "3.15t-dev"
         os: ["ubuntu-latest"]
 
         #include:
@@ -130,6 +132,8 @@ jobs:
             pyversion: "cp312"
           - image: manylinux_2_34_aarch64
             pyversion: "cp313"
+          - image: manylinux_2_34_aarch64
+            pyversion: "cp314"
 
     runs-on: ubuntu-latest
 
