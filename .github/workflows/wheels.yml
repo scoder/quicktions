@@ -124,13 +124,13 @@ jobs:
         uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_34
-          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_39
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_34  # manylinux_2_39 ?
           CIBW_MANYLINUX_ARMV7L_IMAGE: manylinux_2_35
           CIBW_MANYLINUX_PPC64LE_IMAGE: manylinux_2_34
           CIBW_MANYLINUX_S390X_IMAGE: manylinux_2_34
-          CIBW_MANYLINUX_RISCV64_IMAGE: manylinux_2_39
+          CIBW_MANYLINUX_RISCV64_IMAGE: manylinux_2_34
           CIBW_MANYLINUX_PYPY_X86_64_IMAGE: manylinux_2_34
-          CIBW_MANYLINUX_PYPY_AARCH64_IMAGE: manylinux_2_39
+          CIBW_MANYLINUX_PYPY_AARCH64_IMAGE: manylinux_2_34
           CIBW_MUSLLINUX_X86_64_IMAGE: musllinux_1_2
           CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
           CIBW_MUSLLINUX_PPC64LE_IMAGE: musllinux_1_2
