@@ -44,7 +44,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@c2d88d3ecc89a9ef08eebf45d9637801dcee7eb5 # v4.1.1
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4.1.1
 
     - name: Set up Python
       uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
@@ -58,7 +58,7 @@ jobs:
       run: make sdist
 
     - name: Upload sdist
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: sdist
         path: dist/*.tar.gz
@@ -72,7 +72,7 @@ jobs:
     outputs:
       include: ${{ steps.set-matrix.outputs.include }}
     steps:
-      - uses: actions/checkout@v6.0.0
+      - uses: actions/checkout@v6.0.1
       - name: Install cibuildwheel
         # Nb. keep cibuildwheel version pin consistent with job below
         run: pipx install cibuildwheel==3.3.0
@@ -105,7 +105,7 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v6.0.1
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
@@ -138,7 +138,7 @@ jobs:
         with:
           only: ${{ matrix.only }}
 
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           path: ./wheelhouse/*.whl
           name: wheels-${{ matrix.only }}
@@ -150,7 +150,7 @@ jobs:
 
     steps:
     - name: Merge wheels
-      uses: actions/upload-artifact/merge@v5
+      uses: actions/upload-artifact/merge@v6
       with:
         name: all_wheels
         pattern: wheels-*
@@ -168,10 +168,10 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v6.0.1
 
       - name: Download files
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: ./dist_downloads
           merge-multiple: true
