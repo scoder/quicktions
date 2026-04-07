@@ -6,10 +6,6 @@ import sys
 from setuptools import setup, Extension
 
 
-ext_modules = [
-    Extension("quicktions", ["src/quicktions.pyx"]),
-]
-
 try:
     sys.argv.remove("--with-profile")
 except ValueError:
@@ -19,6 +15,44 @@ else:
 
 enable_coverage = os.environ.get("WITH_COVERAGE") == "1"
 force_rebuild = os.environ.get("FORCE_REBUILD") == "1"
+
+def check_limited_api_option(value):
+    if not value:
+        return None
+    value = value.lower()
+    if value == "true":
+        # The default Limited API version is 3.9, unless we're on a lower Python version
+        # (which is mainly for the sake of testing 3.8 on the CI)
+        if sys.version_info >= (3, 9):
+            return (3, 9)
+        else:
+            return sys.version_info[:2]
+    if value == 'false':
+        return None
+    major, minor = value.split('.', 1)
+    return (int(major), int(minor))
+
+extra_setup_args = {}
+c_defines = []
+
+option_limited_api = check_limited_api_option(os.environ.get("QUICKTIONS_LIMITED_API"))
+if option_limited_api:
+    c_defines.append(('Py_LIMITED_API', f'0x{option_limited_api[0]:02x}{option_limited_api[1]:02x}0000'))
+
+    setup_options = extra_setup_args.setdefault('options', {})
+    bdist_wheel_options = setup_options.setdefault('bdist_wheel', {})
+    bdist_wheel_options['py_limited_api'] = f'cp{option_limited_api[0]}{option_limited_api[1]}'
+
+
+ext_modules = [
+    Extension(
+        "quicktions",
+        ["src/quicktions.pyx"],
+        py_limited_api=True if option_limited_api else False,
+        define_macros=c_defines,
+    ),
+]
+
 
 try:
     sys.argv.remove("--with-cython")
@@ -101,4 +135,5 @@ setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Office/Business :: Financial",
     ],
+    **extra_setup_args,
 )

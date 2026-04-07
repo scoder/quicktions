@@ -26,7 +26,6 @@ __all__ = ['Fraction']
 __version__ = '1.23'
 
 cimport cython
-from cpython.unicode cimport Py_UNICODE_TODECIMAL
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from cpython.long cimport PyLong_FromString
 
@@ -1830,31 +1829,50 @@ cdef _raise_parse_overflow(s):
 
 cdef extern from *:
     """
+    static CYTHON_INLINE int __QUICKTIONS_to_decimal(Py_UCS4 digit) {
+        #if CYTHON_COMPILING_IN_LIMITED_API
+        #include "todigit.h"
+        #else
+        return Py_UNICODE_TODECIMAL(digit);
+        #endif
+    }
+
     static CYTHON_INLINE int __QUICKTIONS_unpack_ustring(
             PyObject* string, Py_ssize_t *length, void** data, int *kind) {
-        if (PyUnicode_READY(string) < 0) return -1;
-        *kind   = PyUnicode_KIND(string);
-        *length = PyUnicode_GET_LENGTH(string);
-        *data   = PyUnicode_DATA(string);
+        if (__Pyx_PyUnicode_READY(string) < 0) return -1;
+        *kind   = __Pyx_PyUnicode_KIND(string);
+        *length = __Pyx_PyUnicode_GET_LENGTH(string);
+
+        #if CYTHON_COMPILING_IN_LIMITED_API
+        *data   = (void*) string;
+        #else
+        *data   = __Pyx_PyUnicode_DATA(string);
+        #endif
+
         return 0;
     }
+
+    #if CYTHON_COMPILING_IN_LIMITED_API
+    #define __QUICKTIONS_char_at(data, kind, index) (Py_UCS4) (((void)kind), PyUnicode_ReadChar(data, index))
+    #else
     #define __QUICKTIONS_char_at(data, kind, index) \
         (((kind == 1) ? (Py_UCS4) ((char*) data)[index] : (Py_UCS4) PyUnicode_READ(kind, data, index)))
+    #endif
     """
     int _unpack_ustring "__QUICKTIONS_unpack_ustring" (
         object string, Py_ssize_t *length, void **data, int *kind) except -1
     Py_UCS4 _char_at "__QUICKTIONS_char_at" (void *data, int kind, Py_ssize_t index)
-    Py_UCS4 PyUnicode_READ(int kind, void *data, Py_ssize_t index)
+    int _to_decimal "__QUICKTIONS_to_decimal" (Py_UCS4 c)
 
 
-cdef inline int _parse_digit(char** c_digits, Py_UCS4 c, int allow_unicode):
+cdef inline int _parse_digit(char** c_digits, Py_UCS4 c, int allow_unicode) noexcept:
     cdef unsigned int unum
     cdef int num
     unum = (<unsigned int> c) - <unsigned int> '0'  # Relies on integer underflow for dots etc.
     if unum > 9:
         if not allow_unicode:
             return -1
-        num = Py_UNICODE_TODECIMAL(c)
+        num = _to_decimal(c)
         if num == -1:
             return -1
         unum = <unsigned int> num

@@ -41,6 +41,9 @@ clean:
 realclean: clean
 	rm -fr src/*.c src/*.html
 
+src/todecimal.h: gen_todecimal.py
+	$(PYTHON) $< > $@
+
 qemu-user-static:
 	docker run --rm --privileged hypriot/qemu-register
 
