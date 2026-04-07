@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.23 (2025-??-??)
+1.23 (2026-04-07)
 -----------------
 
 * Thousands separator in formatting was handled differently than for floats etc.
@@ -9,6 +9,8 @@ ChangeLog
 
 * Support thousands separators for formatting fractional part of Fraction.
   https://github.com/python/cpython/pull/132204
+
+* Built using Cython 3.2.4.
 
 
 1.22 (2025-08-25)
