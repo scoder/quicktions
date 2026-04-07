@@ -190,11 +190,11 @@ cdef extern from *:
     object _PyLong_GCD(object a, object b)
 
     const bint HAS_FAST_CTZ_uint   "__Quicktions_HAS_FAST_CTZ_uint"
-    int trailing_zeros_uint "__Quicktions_trailing_zeros_uint" (unsigned int x)
+    int trailing_zeros_uint "__Quicktions_trailing_zeros_uint" (unsigned int x) nogil
     const bint HAS_FAST_CTZ_ulong  "__Quicktions_HAS_FAST_CTZ_ulong"
-    int trailing_zeros_ulong "__Quicktions_trailing_zeros_ulong" (unsigned long x)
+    int trailing_zeros_ulong "__Quicktions_trailing_zeros_ulong" (unsigned long x) nogil
     const bint HAS_FAST_CTZ_ullong "__Quicktions_HAS_FAST_CTZ_ullong"
-    int trailing_zeros_ullong "__Quicktions_trailing_zeros_ullong" (unsigned long long x)
+    int trailing_zeros_ullong "__Quicktions_trailing_zeros_ullong" (unsigned long long x) nogil
 
 
 def _gcd(a, b):
@@ -233,21 +233,21 @@ ctypedef fused cunumber:
     uint
 
 
-cdef ullong _abs(long long x) noexcept:
+cdef ullong _abs(long long x) noexcept nogil:
     if x == PY_LLONG_MIN:
         return (<ullong>PY_LLONG_MAX) + 1
     return abs(x)
 
 
 @cython.cdivision(True)
-cdef cunumber _euclid_gcd(cunumber a, cunumber b) noexcept:
+cdef cunumber _euclid_gcd(cunumber a, cunumber b) noexcept nogil:
     """Euclid's GCD algorithm"""
     while b:
         a, b = b, a%b
     return a
 
 
-cdef inline int trailing_zeros(cunumber x) noexcept:
+cdef inline int trailing_zeros(cunumber x) noexcept nogil:
     if cunumber is uint:
         return trailing_zeros_uint(x)
     elif cunumber is ulong:
@@ -256,7 +256,7 @@ cdef inline int trailing_zeros(cunumber x) noexcept:
         return trailing_zeros_ullong(x)
 
 
-cdef cunumber _binary_gcd(cunumber a, cunumber b) noexcept:
+cdef cunumber _binary_gcd(cunumber a, cunumber b) noexcept nogil:
     # See https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     if not a:
         return b
@@ -280,7 +280,7 @@ cdef cunumber _binary_gcd(cunumber a, cunumber b) noexcept:
 
 
 @cython.cdivision(True)
-cdef cunumber _hybrid_binary_gcd(cunumber a, cunumber b) noexcept:
+cdef cunumber _hybrid_binary_gcd(cunumber a, cunumber b) noexcept nogil:
     # See https://lemire.me/blog/2024/04/13/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
     if a < b:
         a,b = b,a
@@ -315,7 +315,7 @@ cdef cunumber _hybrid_binary_gcd(cunumber a, cunumber b) noexcept:
 
 
 @cython.cdivision(True)
-cdef cunumber _hybrid_binary_gcd2(cunumber a, cunumber b) noexcept:
+cdef cunumber _hybrid_binary_gcd2(cunumber a, cunumber b) noexcept nogil:
     # See https://en.algorithmica.org/hpc/algorithms/gcd/
     # See https://lemire.me/blog/2024/04/13/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
     if a < b:
@@ -348,7 +348,7 @@ cdef _py_gcd(ullong a, ullong b):
     return _c_gcd(a, b) if b else a
 
 
-cdef ullong _c_gcd_euclid(ullong a, ullong b):
+cdef ullong _c_gcd_euclid(ullong a, ullong b) nogil:
     if not b:
         return a
     if a <= <ullong>INT_MAX*2+1 and b <= <ullong>INT_MAX*2+1:
@@ -359,7 +359,7 @@ cdef ullong _c_gcd_euclid(ullong a, ullong b):
         return _euclid_gcd[ullong](a, b)
 
 
-cdef ullong _c_gcd_binary(ullong a, ullong b):
+cdef ullong _c_gcd_binary(ullong a, ullong b) nogil:
     if not b:
         return a
     if HAS_FAST_CTZ_uint and a <= <ullong>INT_MAX*2+1 and b <= <ullong>INT_MAX*2+1:
@@ -372,7 +372,7 @@ cdef ullong _c_gcd_binary(ullong a, ullong b):
         return _c_gcd_euclid(a, b)
 
 
-cdef ullong _c_gcd_hybrid2(ullong a, ullong b):
+cdef ullong _c_gcd_hybrid2(ullong a, ullong b) nogil:
     if not b:
         return a
     if HAS_FAST_CTZ_uint and a <= <ullong>INT_MAX*2+1 and b <= <ullong>INT_MAX*2+1:
@@ -385,7 +385,7 @@ cdef ullong _c_gcd_hybrid2(ullong a, ullong b):
         return _c_gcd_euclid(a, b)
 
 
-cdef ullong _c_gcd_hybrid(ullong a, ullong b):
+cdef ullong _c_gcd_hybrid(ullong a, ullong b) nogil:
     if not b:
         return a
     if HAS_FAST_CTZ_uint and a <= <ullong>INT_MAX and b <= <ullong>INT_MAX:
@@ -398,7 +398,7 @@ cdef ullong _c_gcd_hybrid(ullong a, ullong b):
         return _c_gcd_euclid(a, b)
 
 
-ctypedef ullong (*fast_cgcd)(ullong a, ullong b)
+ctypedef ullong (*fast_cgcd)(ullong a, ullong b) nogil
 
 cdef fast_cgcd _c_gcd = NULL
 cdef fast_cgcd _c_gcd_best_hybrid = NULL
