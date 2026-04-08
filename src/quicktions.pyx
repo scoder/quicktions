@@ -499,22 +499,11 @@ cdef _gcd_fallback(a: int, b: int):
     """
     # Try doing the computation in C space.  If the numbers are too
     # large at the beginning, do object calculations until they are small enough.
-    cdef ullong au, bu
     cdef long long ai, bi
 
     if HAS_ISLONGLONG:
         if PyLong_IsLongLong(a) and PyLong_IsLongLong(b):
             ai, bi = a, b
-            au = _abs(ai)
-            bu = _abs(bi)
-            return _py_gcd(au, bu)
-    else:
-        # Optimistically try to switch to C space.
-        try:
-            ai, bi = a, b
-        except OverflowError:
-            pass
-        else:
             au = _abs(ai)
             bu = _abs(bi)
             return _py_gcd(au, bu)
@@ -524,10 +513,12 @@ cdef _gcd_fallback(a: int, b: int):
     b = abs(b)
     while b > PY_MAX_ULONGLONG:
         a, b = b, a%b
-    while b and a > PY_MAX_ULONGLONG:
-        a, b = b, a%b
-    if not b:
+    if b == 0:
         return a
+    while a > PY_MAX_ULONGLONG:
+        a, b = b, a%b
+        if b == 0:
+            return a
     return _py_gcd(a, b)
 
 
@@ -1871,6 +1862,8 @@ cdef inline int _parse_digit(char** c_digits, Py_UCS4 c, int allow_unicode) noex
     unum = (<unsigned int> c) - <unsigned int> '0'  # Relies on integer underflow for dots etc.
     if unum > 9:
         if not allow_unicode:
+            return -1
+        if c < 1632:
             return -1
         num = _to_decimal(c)
         if num == -1:
