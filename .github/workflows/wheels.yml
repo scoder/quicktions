@@ -214,6 +214,7 @@ jobs:
           CIBW_BUILD: "*${{ matrix.target }}"
           CIBW_SKIP: "cp31*t-*  pp3*"
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ matrix.lapiversion }}"
+          QUICKTIONS_LIMITED_API: "${{ matrix.lapiversion }}"
 
       - name: Check wheel
         run: |
