@@ -82,6 +82,10 @@ cdef pow10(long long i):
 
 # Half-private GCD implementation.
 
+cdef extern from "<stdlib.h>":
+    # Cython <= 3.2.4 bug: llabs requires C99 and stdlib.h, but Cython doesn't include that automatically.
+    pass
+
 cdef extern from *:
     """
     #if defined(__Pyx_PyLong_DigitCount)
@@ -179,7 +183,7 @@ cdef extern from *:
         #if Py_LIMITED_API >= 0x030d0000
             #define __Quicktions_HAS_FAST_MATH_GCD (1)
         #elif Py_LIMITED_API >= 0x030b0000
-            static int __Quicktions_HAS_FAST_MATH_GCD = (Py_Version >= 0x030d0000);
+            #define __Quicktions_HAS_FAST_MATH_GCD (Py_Version >= 0x030d0000)
         #else
             #define __Quicktions_HAS_FAST_MATH_GCD (0)
         #endif
