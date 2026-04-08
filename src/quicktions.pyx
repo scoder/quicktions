@@ -1838,7 +1838,7 @@ cdef extern from *:
     """
     static CYTHON_INLINE int __QUICKTIONS_to_decimal(Py_UCS4 digit) {
         #if CYTHON_COMPILING_IN_LIMITED_API
-        #include "todigit.h"
+        #include "todecimal.h"
         #else
         return Py_UNICODE_TODECIMAL(digit);
         #endif
