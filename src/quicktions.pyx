@@ -26,7 +26,6 @@ __all__ = ['Fraction']
 __version__ = '1.23'
 
 cimport cython
-from cpython.unicode cimport Py_UNICODE_TODECIMAL
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from cpython.long cimport PyLong_FromString
 
@@ -82,6 +81,10 @@ cdef pow10(long long i):
 
 
 # Half-private GCD implementation.
+
+cdef extern from "<stdlib.h>":
+    # Cython <= 3.2.4 bug: llabs requires C99 and stdlib.h, but Cython doesn't include that automatically.
+    pass
 
 cdef extern from *:
     """
@@ -175,6 +178,18 @@ cdef extern from *:
         #define __Quicktions_HAS_FAST_CTZ_ullong  (0)
         #define __Quicktions_trailing_zeros_ullong(x)  (0)
     #endif
+
+    #if defined(Py_LIMITED_API)
+        #if Py_LIMITED_API >= 0x030d0000
+            #define __Quicktions_HAS_FAST_MATH_GCD (1)
+        #elif Py_LIMITED_API >= 0x030b0000
+            #define __Quicktions_HAS_FAST_MATH_GCD (Py_Version >= 0x030d0000)
+        #else
+            #define __Quicktions_HAS_FAST_MATH_GCD (0)
+        #endif
+    #else
+        #define __Quicktions_HAS_FAST_MATH_GCD  (PY_VERSION_HEX >= 0x030d0000)
+    #endif
     """
     bint PyLong_IsCompact "__Quicktions_PyLong_IsCompact" (x)
     unsigned long long PyLong_CompactValueUnsigned "__Quicktions_PyLong_CompactValueUnsigned" (x)
@@ -185,7 +200,7 @@ cdef extern from *:
 
     # CPython 3.5-3.12 has a fast PyLong GCD implementation that we can use.
     # In CPython 3.13, math.gcd() is fast enough to call it directly.
-    const bint HAS_FAST_MATH_GCD  "(PY_VERSION_HEX >= 0x030d0000)"
+    const bint HAS_FAST_MATH_GCD "__Quicktions_HAS_FAST_MATH_GCD"
     const bint HAS_OLD_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
     object _PyLong_GCD(object a, object b)
 
@@ -500,22 +515,11 @@ cdef _gcd_fallback(a: int, b: int):
     """
     # Try doing the computation in C space.  If the numbers are too
     # large at the beginning, do object calculations until they are small enough.
-    cdef ullong au, bu
     cdef long long ai, bi
 
     if HAS_ISLONGLONG:
         if PyLong_IsLongLong(a) and PyLong_IsLongLong(b):
             ai, bi = a, b
-            au = _abs(ai)
-            bu = _abs(bi)
-            return _py_gcd(au, bu)
-    else:
-        # Optimistically try to switch to C space.
-        try:
-            ai, bi = a, b
-        except OverflowError:
-            pass
-        else:
             au = _abs(ai)
             bu = _abs(bi)
             return _py_gcd(au, bu)
@@ -525,10 +529,12 @@ cdef _gcd_fallback(a: int, b: int):
     b = abs(b)
     while b > PY_MAX_ULONGLONG:
         a, b = b, a%b
-    while b and a > PY_MAX_ULONGLONG:
-        a, b = b, a%b
-    if not b:
+    if b == 0:
         return a
+    while a > PY_MAX_ULONGLONG:
+        a, b = b, a%b
+        if b == 0:
+            return a
     return _py_gcd(a, b)
 
 
@@ -1830,31 +1836,54 @@ cdef _raise_parse_overflow(s):
 
 cdef extern from *:
     """
+    static CYTHON_INLINE int __QUICKTIONS_to_decimal(Py_UCS4 digit) {
+        #if CYTHON_COMPILING_IN_LIMITED_API
+        #include "todecimal.h"
+        #else
+        return Py_UNICODE_TODECIMAL(digit);
+        #endif
+    }
+
     static CYTHON_INLINE int __QUICKTIONS_unpack_ustring(
             PyObject* string, Py_ssize_t *length, void** data, int *kind) {
+        #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030c0000
         if (PyUnicode_READY(string) < 0) return -1;
-        *kind   = PyUnicode_KIND(string);
-        *length = PyUnicode_GET_LENGTH(string);
-        *data   = PyUnicode_DATA(string);
+        #endif
+        *kind   = __Pyx_PyUnicode_KIND(string);
+        *length = __Pyx_PyUnicode_GET_LENGTH(string);
+
+        #if CYTHON_COMPILING_IN_LIMITED_API
+        *data   = (void*) string;
+        #else
+        *data   = __Pyx_PyUnicode_DATA(string);
+        #endif
+
         return 0;
     }
+
+    #if CYTHON_COMPILING_IN_LIMITED_API
+    #define __QUICKTIONS_char_at(data, kind, index) (Py_UCS4) (((void)kind), PyUnicode_ReadChar(data, index))
+    #else
     #define __QUICKTIONS_char_at(data, kind, index) \
         (((kind == 1) ? (Py_UCS4) ((char*) data)[index] : (Py_UCS4) PyUnicode_READ(kind, data, index)))
+    #endif
     """
     int _unpack_ustring "__QUICKTIONS_unpack_ustring" (
         object string, Py_ssize_t *length, void **data, int *kind) except -1
     Py_UCS4 _char_at "__QUICKTIONS_char_at" (void *data, int kind, Py_ssize_t index)
-    Py_UCS4 PyUnicode_READ(int kind, void *data, Py_ssize_t index)
+    int _to_decimal "__QUICKTIONS_to_decimal" (Py_UCS4 c)
 
 
-cdef inline int _parse_digit(char** c_digits, Py_UCS4 c, int allow_unicode):
+cdef inline int _parse_digit(char** c_digits, Py_UCS4 c, int allow_unicode) noexcept:
     cdef unsigned int unum
     cdef int num
     unum = (<unsigned int> c) - <unsigned int> '0'  # Relies on integer underflow for dots etc.
     if unum > 9:
         if not allow_unicode:
             return -1
-        num = Py_UNICODE_TODECIMAL(c)
+        if c < 1632:
+            return -1
+        num = _to_decimal(c)
         if num == -1:
             return -1
         unum = <unsigned int> num
