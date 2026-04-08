@@ -1842,7 +1842,9 @@ cdef extern from *:
 
     static CYTHON_INLINE int __QUICKTIONS_unpack_ustring(
             PyObject* string, Py_ssize_t *length, void** data, int *kind) {
-        if (__Pyx_PyUnicode_READY(string) < 0) return -1;
+        #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030c0000
+        if (PyUnicode_READY(string) < 0) return -1;
+        #endif
         *kind   = __Pyx_PyUnicode_KIND(string);
         *length = __Pyx_PyUnicode_GET_LENGTH(string);
 
