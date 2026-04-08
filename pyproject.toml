@@ -11,7 +11,7 @@ environment-pass = "QUICKTIONS_LIMITED_API"
 # test-command = "python -m unittest {package}/test_fractions.py -p -v"
 
 [tool.cibuildwheel.windows]
-archs = ["AMD64", "x86"]
+archs = ["AMD64", "x86", "ARM64"]
 
 [tool.cibuildwheel.macos]
 # https://cibuildwheel.readthedocs.io/en/stable/faq/#what-to-provide suggests to provide
