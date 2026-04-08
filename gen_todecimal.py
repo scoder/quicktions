@@ -1,3 +1,6 @@
+"""
+Generate and print a C snippet that maps Unicode digit code points to ASCII digits.
+"""
 
 import sys
 import unicodedata
@@ -48,6 +51,7 @@ def gen_switch_cases(digits_by_adigit):
     print("    default:")
     print("        return -1;")
     print("}")
+
 
 if __name__ == '__main__':
     gen_switch_cases(map_to_ascii_digit(list_digits()))
