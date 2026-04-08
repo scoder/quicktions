@@ -7,6 +7,7 @@ skip = ["pp*", "*-musllinux_i686", "cp35*", "cp36*", "cp37*"]
 enable =[
     "cpython-prerelease",
     ]
+environment-pass = "QUICKTIONS_LIMITED_API"
 # test-command = "python -m unittest {package}/test_fractions.py -p -v"
 
 [tool.cibuildwheel.windows]
