@@ -179,7 +179,7 @@ cdef extern from *:
         #if Py_LIMITED_API >= 0x030d0000
             #define __Quicktions_HAS_FAST_MATH_GCD (1)
         #elif Py_LIMITED_API >= 0x030b0000
-            static const int __Quicktions_HAS_FAST_MATH_GCD = (Py_Version >= 0x030d0000);
+            static int __Quicktions_HAS_FAST_MATH_GCD = (Py_Version >= 0x030d0000);
         #else
             #define __Quicktions_HAS_FAST_MATH_GCD (0)
         #endif
