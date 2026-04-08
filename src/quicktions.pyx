@@ -174,6 +174,18 @@ cdef extern from *:
         #define __Quicktions_HAS_FAST_CTZ_ullong  (0)
         #define __Quicktions_trailing_zeros_ullong(x)  (0)
     #endif
+
+    #if defined(Py_LIMITED_API)
+        #if Py_LIMITED_API >= 0x030d0000
+            #define __Quicktions_HAS_FAST_MATH_GCD (1)
+        #elif Py_LIMITED_API >= 0x030b0000
+            static const int __Quicktions_HAS_FAST_MATH_GCD = (Py_Version >= 0x030d0000);
+        #else
+            #define __Quicktions_HAS_FAST_MATH_GCD (0)
+        #endif
+    #else
+        #define __Quicktions_HAS_FAST_MATH_GCD  (PY_VERSION_HEX >= 0x030d0000)
+    #endif
     """
     bint PyLong_IsCompact "__Quicktions_PyLong_IsCompact" (x)
     unsigned long long PyLong_CompactValueUnsigned "__Quicktions_PyLong_CompactValueUnsigned" (x)
@@ -184,7 +196,7 @@ cdef extern from *:
 
     # CPython 3.5-3.12 has a fast PyLong GCD implementation that we can use.
     # In CPython 3.13, math.gcd() is fast enough to call it directly.
-    const bint HAS_FAST_MATH_GCD  "(PY_VERSION_HEX >= 0x030d0000)"
+    const bint HAS_FAST_MATH_GCD "__Quicktions_HAS_FAST_MATH_GCD"
     const bint HAS_OLD_PYLONG_GCD "(CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000)"
     object _PyLong_GCD(object a, object b)
 
