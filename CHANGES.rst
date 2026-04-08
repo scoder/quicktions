@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.23 (2026-04-07)
+1.23 (2026-04-08)
 -----------------
 
 * Thousands separator in formatting was handled differently than for floats etc.
@@ -9,6 +9,13 @@ ChangeLog
 
 * Support thousands separators for formatting fractional part of Fraction.
   https://github.com/python/cpython/pull/132204
+
+* Supports building as abi3 wheel.
+  Note that abi3 wheels are about half as fast as Python specific builds.
+
+* Several uncommon build architectures are now served with abi3 wheels
+  to reduce the number of distribution wheels.  To request a more performant wheel
+  for a specific architecture and Python version (range), please open a ticket.
 
 * Built using Cython 3.2.4.
 
