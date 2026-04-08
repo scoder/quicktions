@@ -25,7 +25,7 @@ archs = ["x86_64", "aarch64", "i686", "ppc64le", "armv7l", "riscv64"]
 repair-wheel-command = "auditwheel repair --strip -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.linux.environment]
-CFLAGS = "-O3 -g1 -pipe -fPIC"
+CFLAGS = "-O3 -g1 -pipe -fPIC -std=c99"
 AR = "gcc-ar"
 NM = "gcc-nm"
 RANLIB = "gcc-ranlib"
