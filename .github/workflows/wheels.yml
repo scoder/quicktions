@@ -115,7 +115,7 @@ jobs:
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
         with:
           platforms: all
 
@@ -235,7 +235,7 @@ jobs:
 
     steps:
     - name: Merge wheels
-      uses: actions/upload-artifact/merge@v7
+      uses: actions/upload-artifact/merge@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: all_wheels
         pattern: wheels-*
@@ -268,6 +268,6 @@ jobs:
         run: python3 dedup_wheels.py -d ./dist_downloads
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           files: ./dist_downloads/*
