@@ -47,7 +47,7 @@ environment.CFLAGS = "-O3 -g1 -pipe -fPIC -march=armv8-a -mtune=cortex-a72"
 
 [[tool.cibuildwheel.overrides]]
 #select = "*i686 *musllinux* *win32 *win_arm64 *macosx_x86_64 *armv7l"
-select = "*i686 *musllinux* *macosx_x86_64 *armv7l *ppc64le *riscv64"
+select = "cp3{9,1?}-*i686 cp3{9,1?}-*musllinux* cp3{9,1?}-*macosx_x86_64 cp3{9,1?}-*armv7l cp3{9,1?}-*ppc64le cp3{9,1?}-*riscv64"
 inherit.test-requires = "append"
 test-requires = ["abi3audit>=0.0.25"]
 inherit.test-command = "append"
