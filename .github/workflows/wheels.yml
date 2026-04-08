@@ -44,7 +44,8 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4.1.1
+    - name: Check out project
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
     - name: Set up Python
       uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
@@ -72,26 +73,31 @@ jobs:
     outputs:
       include: ${{ steps.set-matrix.outputs.include }}
     steps:
-      - uses: actions/checkout@v6.0.1
+      - name: Check out project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install cibuildwheel
         # Nb. keep cibuildwheel version pin consistent with job below
-        run: pipx install cibuildwheel==3.3.0
+        run: pipx install cibuildwheel==3.4.1
       - id: set-matrix
         run: |
           MATRIX=$(
             {
-              cibuildwheel --print-build-identifiers --platform linux \
+              cibuildwheel --print-build-identifiers --platform linux --archs x86_64 \
               | jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
               | sed -e '/aarch64\|armv7l/s|ubuntu-latest|ubuntu-24.04-arm|' \
               && cibuildwheel --print-build-identifiers --platform macos \
               | jq -nRc '{"only": inputs, "os": "macos-latest"}' \
-              && cibuildwheel --print-build-identifiers --platform windows \
+              && cibuildwheel --print-build-identifiers --platform windows --archs x86,AMD64 \
               | jq -nRc '{"only": inputs, "os": "windows-2022"}' \
               && cibuildwheel --print-build-identifiers --platform windows --archs ARM64 \
               | jq -nRc '{"only": inputs, "os": "windows-11-arm"}'
             } | jq -sc
           )
+          echo "include=$MATRIX"
           echo "include=$MATRIX" >> $GITHUB_OUTPUT
+        env:
+          # Skip abi3 targets here:
+          CIBW_SKIP: "cp3{9,1?}-win_arm64  cp3{9,1?}-win32  cp3{9,1?}-macosx_x86_64  pp*  *musllinux*"
 
   build_wheels:
     name: Build ${{ matrix.only }}
@@ -104,8 +110,8 @@ jobs:
         include: ${{ fromJson(needs.generate-wheels-matrix.outputs.include) }}
 
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v6.0.1
+      - name: Check out project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
@@ -114,14 +120,14 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
         with:
           only: ${{ matrix.only }}
 
       - name: Build faster Linux wheels
         # also build wheels with the most recent manylinux images and gcc
         if: runner.os == 'Linux' && !contains(matrix.only, 'i686')
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
         env:
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_34
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_34  # manylinux_2_39 ?
@@ -143,9 +149,88 @@ jobs:
           path: ./wheelhouse/*.whl
           name: wheels-${{ matrix.only }}
 
+  build_limited_api_wheels:
+    name: Build ${{ matrix.target }} Stable ABI ${{ matrix.lapiversion }} wheels
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'release' ||
+      (github.event_name == 'schedule' && github.repository == 'cython/cython') ||
+      github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          # Smaller set of platforms that we only provide Stable ABI wheels for:
+          - 'musllinux_x86_64'
+          - 'musllinux_aarch64'
+          - 'manylinux_i686'
+          - 'musllinux_i686'
+          - 'manylinux_ppc64le'
+          - 'musllinux_ppc64le'
+          - 'manylinux_riscv64'
+          - 'musllinux_riscv64'
+          - 'manylinux_armv7l'
+          - 'musllinux_armv7l'
+          - 'macosx_x86_64'
+          - 'win32'
+          - 'win_arm64'
+        lapiversion:
+          - "3.9"
+          - "3.12"
+
+    runs-on: ${{
+      contains(matrix.target, 'aarch64') && 'ubuntu-24.04-arm' ||
+      contains(matrix.target, 'armv7l') && 'ubuntu-24.04-arm' ||
+      contains(matrix.target, 'win_arm64') && 'windows-11-arm' ||
+      contains(matrix.target, 'win32') && 'windows-latest' ||
+      contains(matrix.target, 'macosx') && 'macos-latest' ||
+      'ubuntu-latest'
+      }}
+
+    steps:
+      - name: Check out project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.x'
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+        with:
+          platforms: all
+
+      - name: Setup Visual Studio on Windows
+        if: startsWith(matrix.target, 'win')
+        uses: TheMrMilchmann/setup-msvc-dev@79dac248aac9d0059f86eae9d8b5bfab4e95e97c # v4.0.0
+        with:
+          arch: ${{ matrix.target == 'win32' && 'x86' || matrix.target == 'win_arm64' && 'arm64' || matrix.target == 'win_amd64' && 'amd64' || '' }}
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
+        env:
+          CIBW_BUILD: "*${{ matrix.target }}"
+          CIBW_SKIP: "cp31*t-*  pp3*"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ matrix.lapiversion }}"
+          QUICKTIONS_LIMITED_API: "${{ matrix.lapiversion }}"
+
+      - name: Check wheel
+        run: |
+          python -m pip install twine
+          python -m twine check ./wheelhouse/*.whl
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: Stable-ABI-${{ matrix.target }}-${{ matrix.lapiversion }}
+          path: ./wheelhouse/*.whl
+
   merge_wheels:
     name: Merge wheel archives
-    needs: build_wheels
+    needs: [build_wheels, build_limited_api_wheels]
     runs-on: ubuntu-latest
 
     steps:
@@ -167,8 +252,8 @@ jobs:
       contents: write
 
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v6.0.1
+      - name: Check out project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Download files
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0

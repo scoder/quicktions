@@ -4,15 +4,28 @@ requires = ["Cython>=3.2.4", "setuptools"]
 [tool.cibuildwheel]
 build-verbosity = 2
 skip = ["pp*", "*-musllinux_i686", "cp35*", "cp36*", "cp37*"]
-enable =["cpython-freethreading", "cpython-prerelease"]
+enable =[
+    "cpython-prerelease",
+    ]
+environment-pass = "QUICKTIONS_LIMITED_API"
 # test-command = "python -m unittest {package}/test_fractions.py -p -v"
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64", "x86", "ARM64"]
+
+[tool.cibuildwheel.macos]
+# https://cibuildwheel.readthedocs.io/en/stable/faq/#what-to-provide suggests to provide
+# x86_64 and one of universal2 or arm64 wheels.  x86_64 is still required by older pips,
+# so additional arm64 wheels suffice.
+#archs = ["x86_64", "universal2"]
+archs = ["x86_64", "arm64"]
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64", "i686", "ppc64le", "armv7l", "riscv64"]
 repair-wheel-command = "auditwheel repair --strip -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.linux.environment]
-CFLAGS = "-O3 -g1 -pipe -fPIC"
+CFLAGS = "-O3 -g1 -pipe -fPIC -std=c99"
 AR = "gcc-ar"
 NM = "gcc-nm"
 RANLIB = "gcc-ranlib"
@@ -32,12 +45,10 @@ select = "*aarch64"
 inherit.environment = "append"
 environment.CFLAGS = "-O3 -g1 -pipe -fPIC -march=armv8-a -mtune=cortex-a72"
 
-[tool.cibuildwheel.windows]
-archs = ["AMD64", "x86"]
-
-[tool.cibuildwheel.macos]
-# https://cibuildwheel.readthedocs.io/en/stable/faq/#what-to-provide suggests to provide
-# x86_64 and one of universal2 or arm64 wheels.  x86_64 is still required by older pips,
-# so additional arm64 wheels suffice.
-#archs = ["x86_64", "universal2"]
-archs = ["x86_64", "arm64"]
+[[tool.cibuildwheel.overrides]]
+#select = "*i686 *musllinux* *win32 *win_arm64 *macosx_x86_64 *armv7l"
+select = "cp3{9,1?}-*i686 cp3{9,1?}-*musllinux* cp3{9,1?}-*macosx_x86_64 cp3{9,1?}-*armv7l cp3{9,1?}-*ppc64le cp3{9,1?}-*riscv64"
+inherit.test-requires = "append"
+test-requires = ["abi3audit>=0.0.25"]
+inherit.test-command = "append"
+test-command = ["abi3audit --strict --report {wheel}"]
