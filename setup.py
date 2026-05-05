@@ -115,6 +115,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
 
+    license="PSF-2.0",
+    license_files = ["LICENSE"],
+
     ext_modules=ext_modules,
     package_dir={'': 'src'},
     **extra_setup_args,

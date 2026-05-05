@@ -7,8 +7,6 @@ authors = [
 maintainers = [
     {name = "Stefan Behnel", email = "stefan_ml@behnel.de"},
 ]
-license = "PSF-2.0"
-license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 6 - Mature",
     "Intended Audience :: Developers",
@@ -21,7 +19,7 @@ classifiers = [
 ]
 requires-python = ">= 3.8"
 
-dynamic = ["version", "readme"]
+dynamic = ["version", "readme", "license"]
 
 [project.urls]
 Homepage = "https://github.com/scoder/quicktions"
