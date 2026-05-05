@@ -53,7 +53,7 @@ jobs:
         python-version: "3.x"
 
     - name: Install Python dependencies
-      run: python -m pip install -U pip setuptools wheel && python -m pip install -U -r requirements.txt
+      run: python -m pip install -U pip setuptools && python -m pip install -U -r requirements.txt
 
     - name: Build sdist
       run: make sdist
@@ -114,6 +114,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up QEMU
+        if: runner.os == 'Linux' && !contains(matrix.only, 'x86_64') && !contains(matrix.only, 'i686') && !contains(matrix.only, 'aarch64')
         if: runner.os == 'Linux'
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
         with:
@@ -151,11 +152,6 @@ jobs:
 
   build_limited_api_wheels:
     name: Build ${{ matrix.target }} Stable ABI ${{ matrix.lapiversion }} wheels
-    if: >-
-      github.event_name == 'push' ||
-      github.event_name == 'release' ||
-      (github.event_name == 'schedule' && github.repository == 'cython/cython') ||
-      github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -198,7 +194,7 @@ jobs:
           python-version: '3.x'
 
       - name: Set up QEMU
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !contains(matrix.target, 'x86_64') && !contains(matrix.target, 'i686') && !contains(matrix.target, 'aarch64')
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
         with:
           platforms: all
@@ -217,15 +213,10 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ matrix.lapiversion }}"
           QUICKTIONS_LIMITED_API: "${{ matrix.lapiversion }}"
 
-      - name: Check wheel
-        run: |
-          python -m pip install twine
-          python -m twine check ./wheelhouse/*.whl
-
       - name: Upload wheels
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: Stable-ABI-${{ matrix.target }}-${{ matrix.lapiversion }}
+          name: wheels-Stable-ABI-${{ matrix.target }}-${{ matrix.lapiversion }}
           path: ./wheelhouse/*.whl
 
   merge_wheels:
@@ -242,9 +233,36 @@ jobs:
         delete-merged: true
         compression-level: 9
 
+  validate_wheels:
+    name: Validate wheels
+    needs: [ merge_wheels ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: all_wheels
+          path: ./dist_downloads
+          merge-multiple: true
+
+      - name: abi3audit wheels
+        run: |
+          python -m pip install abi3audit
+          ERRORS=0
+          for wheel in ./dist_downloads/*abi3*.whl; do abi3audit --strict --report ${wheel} || ERRORS=$((ERRORS + 1)); done
+          exit $ERRORS
+
+      - name: Twine-check wheels
+        run: |
+          python -m pip install twine
+          ERRORS=0
+          for wheel in ./dist_downloads/*.whl; do twine check ${wheel} || ERRORS=$((ERRORS + 1)); done
+          exit $ERRORS
+
   upload_release_assets:
     name: Upload packages
-    needs: [ sdist, merge_wheels ]
+    needs: [ sdist, validate_wheels ]
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag'
 
