@@ -1,3 +1,33 @@
+[project]
+name = "quicktions"
+description = "Fast fractions data type for rational numbers. Cythonized version of 'fractions.Fraction'."
+authors = [
+    {name = "Stefan Behnel", email = "stefan_ml@behnel.de"},
+]
+maintainers = [
+    {name = "Stefan Behnel", email = "stefan_ml@behnel.de"},
+]
+license = "PSF-2.0"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Cython",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Office/Business :: Financial",
+]
+requires-python = ">= 3.8"
+
+dynamic = ["version", "readme"]
+
+[project.urls]
+Homepage = "https://github.com/scoder/quicktions"
+Issues = "https://github.com/scoder/quicktions/issues"
+Changelog = "https://github.com/scoder/quicktions/blob/master/CHANGES.rst"
+
 [build-system]
 requires = ["Cython>=3.2.4", "setuptools"]
 

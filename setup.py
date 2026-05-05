@@ -111,29 +111,11 @@ with open('CHANGES.rst') as f:
 
 
 setup(
-    name="quicktions",
     version=version,
-    description="Fast fractions data type for rational numbers. "
-                "Cythonized version of 'fractions.Fraction'.",
     long_description=long_description,
-    author="Stefan Behnel",
-    author_email="stefan_ml@behnel.de",
-    url="https://github.com/scoder/quicktions",
-    #bugtrack_url="https://github.com/scoder/quicktions/issues",
-    license="PSF-2.0",
+    long_description_content_type="text/x-rst",
 
     ext_modules=ext_modules,
     package_dir={'': 'src'},
-
-    classifiers=[
-        "Development Status :: 6 - Mature",
-        "Intended Audience :: Developers",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Cython",
-        "Topic :: Scientific/Engineering :: Mathematics",
-        "Topic :: Office/Business :: Financial",
-    ],
     **extra_setup_args,
 )
