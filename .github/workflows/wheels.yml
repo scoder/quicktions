@@ -115,7 +115,6 @@ jobs:
 
       - name: Set up QEMU
         if: runner.os == 'Linux' && !contains(matrix.only, 'x86_64') && !contains(matrix.only, 'i686') && !contains(matrix.only, 'aarch64')
-        if: runner.os == 'Linux'
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
         with:
           platforms: all
