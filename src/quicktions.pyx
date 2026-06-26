@@ -805,19 +805,23 @@ cdef class Fraction:
         if type(number) is Fraction:
             return _fraction_from_coprime_ints((<Fraction> number)._numerator, (<Fraction> number)._denominator, cls)
 
+        elif type(number) is float:
+            n, d = (<float> number).as_integer_ratio()
+            return _fraction_from_coprime_ints(n, d, cls)
+
         elif isinstance(number, int):
             return _fraction_from_coprime_ints(number, 1, cls)
 
         elif isinstance(number, float):
             n, d = number.as_integer_ratio()
-            return _fraction_from_coprime_ints(n, d, cls)
+            return cls(n, d)
 
         elif isinstance(number, Rational):
-            return _fraction_from_coprime_ints(number.numerator, number.denominator, cls)
+            return cls(number.numerator, number.denominator)
 
         elif not isinstance(number, type) and hasattr(number, 'as_integer_ratio'):
             n, d = number.as_integer_ratio()
-            return _fraction_from_coprime_ints(n, d, cls)
+            return cls(n, d)
 
         else:
             raise TypeError("argument should be a Rational instance or "
@@ -864,7 +868,7 @@ cdef class Fraction:
             raise ValueError(f"Cannot convert {dec} to {cls.__name__}.")
 
         num, denom = dec.as_integer_ratio()
-        return _fraction_from_coprime_ints(num, denom, cls)
+        return _fraction_from_coprime_ints(num, denom, cls) if type(dec) is Decimal else cls(num, denom)
 
     def is_integer(self):
         """Return True if the Fraction is an integer."""
