@@ -247,14 +247,14 @@ jobs:
 
       - name: abi3audit wheels
         run: |
-          python -m pip install abi3audit
+          python -m pip install -U abi3audit
           ERRORS=0
           for wheel in ./dist_downloads/*abi3*.whl; do abi3audit --strict --report ${wheel} || ERRORS=$((ERRORS + 1)); done
           exit $ERRORS
 
       - name: Twine-check wheels
         run: |
-          python -m pip install twine
+          python -m pip install -U twine packaging
           ERRORS=0
           for wheel in ./dist_downloads/*.whl; do twine check ${wheel} || ERRORS=$((ERRORS + 1)); done
           exit $ERRORS
