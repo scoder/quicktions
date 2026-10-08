@@ -54,7 +54,6 @@ jobs:
 
       matrix:
         python-version:
-        - "3.8"
         - "3.9"
         - "3.10"
         - "3.11"
@@ -63,8 +62,10 @@ jobs:
         - "3.13t"
         - "3.14"
         - "3.14t"
-        - "3.15-dev"
-        - "3.15t-dev"
+        - "3.15"
+        - "3.15t"
+        - "3.16-dev"
+        - "3.16t-dev"
         os: ["ubuntu-latest"]
 
         #include:
@@ -121,22 +122,6 @@ jobs:
           - musllinux_1_2_x86_64
         pyversion: ["cp"]
 
-        include:
-          - image: manylinux_2_24_aarch64
-            pyversion: "cp38"
-          - image: manylinux_2_24_aarch64
-            pyversion: "cp39"
-          - image: manylinux_2_24_aarch64
-            pyversion: "cp310"
-          - image: manylinux_2_24_aarch64
-            pyversion: "cp311"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp312"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp313"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp314"
-
     runs-on: ubuntu-latest
 
     steps:
@@ -146,7 +131,48 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
-        python-version: "3.12"
+        python-version: "3.14"
+
+    - name: Install Dependency
+      run: |
+        python -m pip install -U pip setuptools && python -m pip install --pre -r requirements.txt
+
+    - name: Building wheel
+      run: |
+        make PYTHON_WHEEL_BUILD_VERSION="${{ matrix.pyversion }}*" sdist wheel_${{ matrix.image }}
+
+    - name: Copy wheels in dist
+      run: cp -v wheelhouse*/*-m*linux*.whl dist/  # manylinux / musllinux
+
+    - name: Archive Wheels
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: wheels-${{ matrix.image }}-${{ matrix.pyversion }}
+        path: dist/*.whl
+        if-no-files-found: ignore
+
+  Linux-arm:
+
+    strategy:
+      # Allows for matrix sub-jobs to fail without canceling the rest
+      fail-fast: false
+
+      matrix:
+        image:
+          - manylinux_2_24_aarch64
+          - manylinux_2_34_aarch64
+        pyversion: ["cp"]
+
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+    - name: Check out project
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: "3.14"
 
     - name: Install Dependency
       run: |
@@ -174,7 +200,6 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
         python-version:
-          - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
@@ -183,8 +208,10 @@ jobs:
           - "3.13t"
           - "3.14"
           - "3.14t"
-          - "3.15-dev"
-          - "3.15t-dev"
+          - "3.15"
+          - "3.15t"
+          - "3.16-dev"
+          - "3.16t-dev"
 
         #include:
         #  - python-version: "3.15-dev"
