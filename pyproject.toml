@@ -17,7 +17,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Office/Business :: Financial",
 ]
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 
 dynamic = ["version", "readme", "license"]
 
