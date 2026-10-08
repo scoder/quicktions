@@ -4,6 +4,8 @@ ChangeLog
 1.24 (2026-10-??)
 -----------------
 
+* Support for Python 3.8 has been removed.
+
 * No longer relies on ``.as_integer_ratio()`` of subtypes of builtin types
   returning a ratio in lowest terms and normalises their return value instead.
 
