@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.24 (2026-10-??)
+-----------------
+
+* No longer relies on ``.as_integer_ratio()`` of subtypes of builtin types
+  returning a ratio in lowest terms and normalises their return value instead.
+
+* ``Fraction.from_float()`` is slightly faster for exact float objects.
+
+* Built using Cython 3.3.0.
+
+
 1.23 (2026-04-08)
 -----------------
 
