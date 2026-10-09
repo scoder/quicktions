@@ -85,6 +85,8 @@ jobs:
               cibuildwheel --print-build-identifiers --platform linux --archs x86_64 \
               | jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
               | sed -e '/aarch64\|armv7l/s|ubuntu-latest|ubuntu-24.04-arm|' \
+              cibuildwheel --print-build-identifiers --platform linux --archs aarch64 \
+              | jq -nRc '{"only": inputs, "os": "ubuntu-24.04-arm"}' \
               && cibuildwheel --print-build-identifiers --platform macos \
               | jq -nRc '{"only": inputs, "os": "macos-latest"}' \
               && cibuildwheel --print-build-identifiers --platform windows --archs x86,AMD64 \
@@ -97,7 +99,7 @@ jobs:
           echo "include=$MATRIX" >> $GITHUB_OUTPUT
         env:
           # Skip abi3 targets here:
-          CIBW_SKIP: "cp3{9,1?}-win_arm64  cp3{9,1?}-win32  cp3{9,1?}-macosx_x86_64  pp*  *musllinux*"
+          CIBW_SKIP: "cp3{9,1?}*-win_arm64  cp3{9,1?}*-win32  cp3{9,1?}*-macosx_x86_64  pp*  *musllinux*"
 
   build_wheels:
     name: Build ${{ matrix.only }}
