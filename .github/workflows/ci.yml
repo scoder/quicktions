@@ -122,27 +122,8 @@ jobs:
           - manylinux_2_34_x86_64
           - musllinux_1_1_x86_64
           - musllinux_1_2_x86_64
-        pyversion: ["cp"]
-
-        include:
-          - image: manylinux_2_24_aarch64
-            pyversion: "cp39"
-          - image: manylinux_2_24_aarch64
-            pyversion: "cp310"
-          - image: manylinux_2_24_aarch64
-            pyversion: "cp311"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp312"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp313"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp314"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp314t"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp315"
-          - image: manylinux_2_34_aarch64
-            pyversion: "cp315t"
+          - manylinux_2_24_aarch64
+          - manylinux_2_34_aarch64
 
     runs-on: ${{ matrix.image == 'manylinux_2_34_aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest'}}
 
@@ -161,7 +142,7 @@ jobs:
 
     - name: Building wheel
       run: |
-        make PYTHON_WHEEL_BUILD_VERSION="cp*-${{ matrix.pyversion == 'cp' && 'cp*' || matrix.pyversion }}" sdist wheel_${{ matrix.image }}
+        make sdist wheel_${{ matrix.image }}
 
     - name: Copy wheels in dist
       run: cp -v wheelhouse*/*-m*linux*.whl dist/  # manylinux / musllinux
@@ -169,7 +150,7 @@ jobs:
     - name: Archive Wheels
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: wheels-${{ matrix.image }}-${{ matrix.pyversion }}
+        name: wheels-${{ matrix.image }}
         path: dist/*.whl
         if-no-files-found: ignore
 
