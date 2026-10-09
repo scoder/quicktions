@@ -835,15 +835,13 @@ cdef class Fraction:
 
         """
         ratio: tuple
-        if type(f) is float:
-            ratio = f.as_integer_ratio()
-            return _fraction_from_coprime_ints(ratio[0], ratio[1], cls)
         try:
             ratio = f.as_integer_ratio()
         except (ValueError, OverflowError, AttributeError):
             pass  # not something we can convert, raise concrete exceptions below
         else:
-            return cls(*ratio)
+            # float.as_integer_ratio() returns a normalised fraction, subtypes may not.
+            return _fraction_from_coprime_ints(ratio[0], ratio[1], cls) if type(f) is float else cls(*ratio)
 
         if isinstance(f, Integral):
             return cls(f)
