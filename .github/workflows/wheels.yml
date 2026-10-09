@@ -77,7 +77,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install cibuildwheel
         # Nb. keep cibuildwheel version pin consistent with job below
-        run: pipx install cibuildwheel==3.4.1
+        run: pipx install cibuildwheel==4.3.0
       - id: set-matrix
         run: |
           MATRIX=$(
