@@ -68,7 +68,7 @@ jobs:
         - "3.15t-dev"
         #- "3.16-dev"
         #- "3.16t-dev"
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-latest", "ubuntu-26.04-arm"]
 
         #include:
         #- python-version: "3.7"
