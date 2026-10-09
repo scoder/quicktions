@@ -21,6 +21,7 @@ permissions:
 
 
 jobs:
+
   sdist:
     runs-on: ubuntu-latest
 
@@ -46,6 +47,7 @@ jobs:
         name: sdist
         path: dist/*.tar.gz
         if-no-files-found: ignore
+
 
   Tests:
     strategy:
@@ -107,8 +109,8 @@ jobs:
         python benchmark/microbench.py create pidigits
         date; echo "Done."
 
-  Linux:
 
+  Linux:
     strategy:
       # Allows for matrix sub-jobs to fail without canceling the rest
       fail-fast: false
@@ -121,6 +123,26 @@ jobs:
           - musllinux_1_1_x86_64
           - musllinux_1_2_x86_64
         pyversion: ["cp"]
+
+        include:
+          - image: manylinux_2_24_aarch64
+            pyversion: "cp39"
+          - image: manylinux_2_24_aarch64
+            pyversion: "cp310"
+          - image: manylinux_2_24_aarch64
+            pyversion: "cp311"
+          - image: manylinux_2_34_aarch64
+            pyversion: "cp312"
+          - image: manylinux_2_34_aarch64
+            pyversion: "cp313"
+          - image: manylinux_2_34_aarch64
+            pyversion: "cp314"
+          - image: manylinux_2_34_aarch64
+            pyversion: "cp314t"
+          - image: manylinux_2_34_aarch64
+            pyversion: "cp315"
+          - image: manylinux_2_34_aarch64
+            pyversion: "cp315t"
 
     runs-on: ubuntu-latest
 
@@ -151,46 +173,6 @@ jobs:
         path: dist/*.whl
         if-no-files-found: ignore
 
-  Linux-arm:
-
-    strategy:
-      # Allows for matrix sub-jobs to fail without canceling the rest
-      fail-fast: false
-
-      matrix:
-        image:
-          - manylinux_2_24_aarch64
-          - manylinux_2_34_aarch64
-        pyversion: ["cp"]
-
-    runs-on: ubuntu-24.04-arm
-
-    steps:
-    - name: Check out project
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-    - name: Set up Python
-      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-      with:
-        python-version: "3.14"
-
-    - name: Install Dependency
-      run: |
-        python -m pip install -U pip setuptools && python -m pip install --pre -r requirements.txt
-
-    - name: Building wheel
-      run: |
-        make PYTHON_WHEEL_BUILD_VERSION="${{ matrix.pyversion }}*" sdist wheel_${{ matrix.image }}
-
-    - name: Copy wheels in dist
-      run: cp -v wheelhouse*/*-m*linux*.whl dist/  # manylinux / musllinux
-
-    - name: Archive Wheels
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      with:
-        name: wheels-${{ matrix.image }}-${{ matrix.pyversion }}
-        path: dist/*.whl
-        if-no-files-found: ignore
 
   non-Linux:
     strategy:
@@ -255,6 +237,7 @@ jobs:
         date; echo "Running micro benchmarks ..."
         python benchmark/microbench.py create pidigits
         date; echo "Done."
+
 
   merge-wheels:
     needs: [ Linux, non-Linux ]
