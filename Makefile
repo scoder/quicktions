@@ -2,7 +2,7 @@ PYTHON?=python3
 VERSION?=$(shell sed -ne "s|^__version__\s*=\s*'\([^']*\)'.*|\1|p" src/quicktions.pyx)
 PACKAGE=quicktions
 WITH_CYTHON := $(shell $(PYTHON) -c 'from Cython.Build import cythonize' 2>/dev/null && echo "--with-cython")
-PYTHON_WHEEL_BUILD_VERSION := "cp*"
+PYTHON_WHEEL_BUILD_VERSION := cp*
 
 MANYLINUX_IMAGES= \
     manylinux1_x86_64 \
