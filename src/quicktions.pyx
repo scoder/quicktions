@@ -843,7 +843,7 @@ cdef class Fraction:
             return _fraction_from_coprime_ints(num, denom, cls) if type(f) is float else cls(num, denom)
 
         if isinstance(f, Integral):
-            return cls(f)
+            return cls(int(f))
         elif not isinstance(f, float):
             raise TypeError(f"{cls.__name__}.from_float() only takes floats, not {f!r} ({type(f).__name__})")
         if math.isinf(f):
