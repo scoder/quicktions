@@ -855,6 +855,13 @@ cdef class Fraction:
     def from_decimal(cls, dec):
         """Converts a finite Decimal instance to a rational number, exactly."""
         cdef Py_ssize_t exp
+        if type(dec) is Decimal:
+            try:
+                num, denom = dec.as_integer_ratio()
+            except (OverflowError, ValueError):
+                pass
+            else:
+                return _fraction_from_coprime_ints(num, denom, cls)
         if isinstance(dec, Integral):
             dec = Decimal(int(dec))
         elif not isinstance(dec, Decimal):
