@@ -834,14 +834,13 @@ cdef class Fraction:
         Beware that Fraction.from_float(0.3) != Fraction(3, 10).
 
         """
-        ratio: tuple
         try:
-            ratio = f.as_integer_ratio()
+            num, denom = f.as_integer_ratio()
         except (ValueError, OverflowError, AttributeError):
             pass  # not something we can convert, raise concrete exceptions below
         else:
             # float.as_integer_ratio() returns a normalised fraction, subtypes may not.
-            return _fraction_from_coprime_ints(ratio[0], ratio[1], cls) if type(f) is float else cls(*ratio)
+            return _fraction_from_coprime_ints(num, denom, cls) if type(f) is float else cls(num, denom)
 
         if isinstance(f, Integral):
             return cls(f)
