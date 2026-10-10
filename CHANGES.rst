@@ -1,15 +1,18 @@
 ChangeLog
 =========
 
-1.24 (2026-10-??)
+1.24 (2026-10-10)
 -----------------
 
-* Support for Python 3.8 has been removed.
+* Binary wheels are not longer provided for Python 3.8.
+  Building them manually with Cython < 3.3 should still work, though.
 
 * No longer relies on ``.as_integer_ratio()`` of subtypes of builtin types
   returning a ratio in lowest terms and normalises their return value instead.
 
-* ``Fraction.from_float()`` is slightly faster for exact float objects.
+* ``Fraction.from_float()`` is slightly faster for exact float objects and integers.
+
+* ``Fraction.from_decimal()`` is slightly faster for exact Decimal objects.
 
 * Built using Cython 3.3.0.
 
