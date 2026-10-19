@@ -116,7 +116,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up QEMU
-        if: runner.os == 'Linux' && !contains(matrix.only, 'x86_64') && !contains(matrix.only, 'i686') && !contains(matrix.only, 'aarch64')
+        if: runner.os == 'Linux' && (contains(matrix.target, 'ppc64le') || contains(matrix.target, 'riscv64'))
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: all
@@ -195,7 +195,7 @@ jobs:
           python-version: '3.x'
 
       - name: Set up QEMU
-        if: runner.os == 'Linux' && !contains(matrix.target, 'x86_64') && !contains(matrix.target, 'i686') && !contains(matrix.target, 'aarch64')
+        if: runner.os == 'Linux' && (contains(matrix.target, 'ppc64le') || contains(matrix.target, 'riscv64'))
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: all
