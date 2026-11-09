@@ -67,7 +67,8 @@ wheel_%: dist/$(PACKAGE)-$(VERSION).tar.gz
 		-e WHEELHOUSE=wheelhouse$(subst wheel_manylinux,,$@) \
 		quay.io/pypa/$(subst wheel_,,$@) \
 		bash -c 'for PYBIN in /opt/python/$(PYTHON_WHEEL_BUILD_VERSION)/bin; do \
-		    $$PYBIN/python -V; \
+			if [[ -z "${PYBIN##*cp3[5678]-*}" ]]; then continue; fi \
+		    echo -n "$$PYBIN/python "; $$PYBIN/python -V; \
 		    { $$PYBIN/pip wheel -w /io/$$WHEELHOUSE /io/$< & } ; \
 		    done; wait; \
 		    for whl in /io/$$WHEELHOUSE/$(PACKAGE)-$(VERSION)-*-linux_*.whl; do auditwheel repair $$whl -w /io/$$WHEELHOUSE; done'
