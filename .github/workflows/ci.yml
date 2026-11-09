@@ -55,28 +55,13 @@ jobs:
       fail-fast: false
 
       matrix:
-        python-version:
-        - "3.9"
-        - "3.10"
-        - "3.11"
-        - "3.12"
-        - "3.13"
-        - "3.13t"
-        - "3.14"
-        - "3.14t"
-        - "3.15"
-        - "3.15t"
-        - "3.16-dev"
-        - "3.16t-dev"
-        os: ["ubuntu-latest", "ubuntu-24.04-arm"]
+        os: ["ubuntu-24.04", "ubuntu-24.04-arm"]
 
-        #include:
-        #- python-version: "3.7"
-        #  os: ubuntu-22.04
-        #- python-version: "3.16-dev"
-        #  allowed_failure: true
+    runs-on: ${{ matrix.os }}
 
-    runs-on: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'  &&  'ubuntu-24.04' || matrix.os }}
+    env:
+      # List special Pythons first to keep the 'normal' one as (last) "python3.xy".
+      PYTHON_VERSIONS: "3.9  3.10  3.11  3.12  3.13  3.14t  3.14  3.15t  3.15  3.16t-dev  3.16-dev"
 
     steps:
     - name: Check out project
@@ -85,28 +70,34 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ env.PYTHON_VERSIONS }}
 
-    - name: Install Dependency
+    - name: Install Dependencies
       run: |
-        python -m pip install -U pip setuptools && python -m pip install -r requirements.txt
+        for PYVER in ${{ env.PYTHON_VERSIONS }}; do \
+          if [[ -n "$${PYVER#3.9}" ]]; then python$${PYVER%-dev} -m pip install -U pip setuptools || exit 1; fi; \
+          python$${PYVER%-dev} -m pip install -r requirements.txt || exit 1; \
+        done
 
     - name: Build
       continue-on-error: ${{ matrix.allowed_failure || false }}
-      run: make local
+      run: for PYVER in ${{ env.PYTHON_VERSIONS }}; do make PYTHON=python$${PYVER%-dev} local || exit 1; done
 
     - name: Run slow tests
       continue-on-error: ${{ matrix.allowed_failure || false }}
-      run: make testslow
+      run: for PYVER in ${{ env.PYTHON_VERSIONS }}; do make PYTHON=python$${PYVER%-dev} testslow || exit 1; done
 
     - name: Running benchmark
-      if: startsWith(matrix.python-version, '3.')
       run: |
         # Run different benchmarks.
-        date; echo "Running telco benchmark ..."
-        python benchmark/telco_fractions.py -n 250
-        date; echo "Running micro benchmarks ..."
-        python benchmark/microbench.py create pidigits
+        for PYVER in ${{ env.PYTHON_VERSIONS }}; do \
+          date; echo "Running telco benchmark in Python $${PYVER} ..."; \
+          python benchmark/telco_fractions.py -n 250; \
+        done
+        for PYVER in ${{ env.PYTHON_VERSIONS }}; do \
+          date; echo "Running micro benchmarks in Python $${PYVER} ..."; \
+          python benchmark/microbench.py create pidigits; \
+        done
         date; echo "Done."
 
 
@@ -138,7 +129,8 @@ jobs:
 
     - name: Install Dependency
       run: |
-        python -m pip install -U pip setuptools && python -m pip install --pre -r requirements.txt
+        if [[ "${{ matrix.python-version }}" != "3.9" ]]; then python -m pip install -U pip setuptools || exit 1; fi
+        python -m pip install --pre -r requirements.txt
 
     - name: Building wheel
       run: |
