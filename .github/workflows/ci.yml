@@ -76,7 +76,7 @@ jobs:
         #- python-version: "3.16-dev"
         #  allowed_failure: true
 
-    runs-on: ${{ matrix.python-version == "3.9" && matrix.os == "ubuntu-latest" && "ubuntu-24.04" || matrix.os }}
+    runs-on: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'  &&  'ubuntu-24.04' || matrix.os }}
 
     steps:
     - name: Check out project
