@@ -83,8 +83,8 @@ jobs:
           MATRIX=$(
             {
               cibuildwheel --print-build-identifiers --platform linux --archs x86_64 \
-              | jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
-              | sed -e '/aarch64\|armv7l/s|ubuntu-latest|ubuntu-24.04-arm|' \
+              | jq -nRc '{"only": inputs, "os": "ubuntu-24.04"}' \
+              | sed -e '/aarch64\|armv7l/s|ubuntu-24.04|ubuntu-24.04-arm|' \
               && cibuildwheel --print-build-identifiers --platform linux --archs aarch64 \
               | jq -nRc '{"only": inputs, "os": "ubuntu-24.04-arm"}' \
               && cibuildwheel --print-build-identifiers --platform macos \
@@ -182,7 +182,7 @@ jobs:
       contains(matrix.target, 'win_arm64') && 'windows-11-arm' ||
       contains(matrix.target, 'win32') && 'windows-latest' ||
       contains(matrix.target, 'macosx') && 'macos-latest' ||
-      'ubuntu-latest'
+      'ubuntu-24.04'
       }}
 
     steps:
