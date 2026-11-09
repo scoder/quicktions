@@ -66,8 +66,8 @@ jobs:
         - "3.14t"
         - "3.15"
         - "3.15t"
-        #- "3.16-dev"
-        #- "3.16t-dev"
+        - "3.16-dev"
+        - "3.16t-dev"
         os: ["ubuntu-latest", "ubuntu-24.04-arm"]
 
         #include:
@@ -173,8 +173,8 @@ jobs:
           - "3.14t"
           - "3.15"
           - "3.15t"
-          #- "3.16-dev"
-          #- "3.16t-dev"
+          - "3.16-dev"
+          - "3.16t-dev"
 
         #include:
         #  - python-version: "3.16-dev"
