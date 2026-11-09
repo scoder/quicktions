@@ -59,6 +59,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      # List special Pythons first to keep the 'normal' one as (last) "python3.xy".
+      PYTHON_VERSIONS: "3.9  3.10  3.11  3.12  3.13  3.14t  3.14  3.15t  3.15  3.16t-dev  3.16-dev"
+
     steps:
     - name: Check out project
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -66,24 +70,10 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
-        # List special Pythons first to keep the 'normal' one as (last) "python3.xy".
-        python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
-          3.13t
-          3.14
-          3.14t
-          3.15
-          3.15t
-          3.16-dev
-          3.16t-dev
+        python-version: ${{ env.PYTHON_VERSIONS }}
 
     - name: Install Dependencies
       run: |
-        which python3.10
         for PYVER in ${{ env.PYTHON_VERSIONS }}; do \
           if [[ -n "$${PYVER#3.9}" ]]; then python$${PYVER%-dev} -m pip install -U pip setuptools || exit 1; fi; \
           python$${PYVER%-dev} -m pip install -r requirements.txt || exit 1; \
