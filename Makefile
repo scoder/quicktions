@@ -63,9 +63,10 @@ endif
 
 wheel_%: dist/$(PACKAGE)-$(VERSION).tar.gz
 	echo "Building wheels for $(PACKAGE) $(VERSION)"
-	mkdir -p build/pipcache
+	mkdir -p /io/build/pipcache
 	time docker run --rm -t \
 		-v $(shell pwd):/io \
+		-v $(shell pwd)/build/pipcache:/root/.cache/pip \
 		-e CFLAGS="-O3 -g0 -mtune=generic -pipe -fPIC" \
 		-e LDFLAGS="$(LDFLAGS) -fPIC" \
 		-e WHEELHOUSE=wheelhouse$(subst wheel_manylinux,,$@) \
@@ -73,6 +74,6 @@ wheel_%: dist/$(PACKAGE)-$(VERSION).tar.gz
 		bash -c 'for PYBIN in /opt/python/$(PYTHON_WHEEL_BUILD_VERSION)/bin; do \
 			if [[ -z "$${PYBIN##*cp3[5678]-*}" ]]; then continue; fi; \
 		    echo -n "$$PYBIN/python "; $$PYBIN/python -V; \
-		    { $$PYBIN/pip wheel --cache-dir /io/build/pipcache  -w /io/$$WHEELHOUSE  /io/$< & } ; \
+		    { $$PYBIN/pip wheel -w /io/$$WHEELHOUSE  /io/$< & } ; \
 		    done; wait; \
 		    for whl in /io/$$WHEELHOUSE/$(PACKAGE)-$(VERSION)-*-linux_*.whl; do auditwheel repair $$whl -w /io/$$WHEELHOUSE; done'
