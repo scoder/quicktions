@@ -63,7 +63,7 @@ endif
 
 wheel_%: dist/$(PACKAGE)-$(VERSION).tar.gz
 	echo "Building wheels for $(PACKAGE) $(VERSION)"
-	mkdir -p /io/build/pipcache
+	mkdir -p build/pipcache
 	time docker run --rm -t \
 		-v $(shell pwd):/io \
 		-v $(shell pwd)/build/pipcache:/root/.cache/pip \
