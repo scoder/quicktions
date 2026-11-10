@@ -63,6 +63,7 @@ endif
 
 wheel_%: dist/$(PACKAGE)-$(VERSION).tar.gz
 	echo "Building wheels for $(PACKAGE) $(VERSION)"
+	mkdir -p build/pipcache
 	time docker run --rm -t \
 		-v $(shell pwd):/io \
 		-e CFLAGS="-O3 -g0 -mtune=generic -pipe -fPIC" \
