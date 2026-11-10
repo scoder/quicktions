@@ -125,7 +125,7 @@ jobs:
           - manylinux2014_aarch64
           - manylinux_2_34_aarch64
 
-    runs-on: ${{ endsWith(matrix.image, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest'}}
+    runs-on: ${{ endsWith(matrix.image, '_aarch64') && 'ubuntu-24.04-arm' || endsWith(matrix.image, '_i686') && 'ubuntu-24.04' || 'ubuntu-latest'}}
 
     steps:
     - name: Check out project
